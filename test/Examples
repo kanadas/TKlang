@@ -1,0 +1,75 @@
+//Algebraic types and pattern matching
+//List syntax sugar:
+//type [a] is a * [a] + void 
+type string is [char];
+
+f :: int + char -> string
+f x = match x with
+    1 @ n -> "int";
+    2 @ c -> "char";
+
+f2 :: char + int -> string
+f2 x = match x with
+    1 @ c -> "char";
+    2 @ n -> "int";
+
+//Type reconstruction
+//Correct
+g :: [int] -> string -> string + [int]
+g lst msg = match lst with
+    h:t -> t;
+    () -> msg;
+
+//Error: cannot infer types 
+h a b = if a + b == 0 then "Zero" else a + b;
+
+//Types of h could be h :: int -> int -> char + int or h :: int -> int -> int + char
+//Correct:
+h a b = if a + b == 0 then 1 @ "Zero" else a + b;
+//h :: int -> int -> char + int
+
+
+//Correct
+weird_plus :: int + int -> int -> int;
+weird_plus a b = a + b;
+
+//Error: cannot infer type
+a :: bool -> int + int
+a b = if b then 1 @ 0 else 1;
+
+//Correct:
+a b = if b then 1 @ 0 else 2 @ 1;
+
+is_first :: int + int -> bool
+is_first x = match x with 1@_ -> true; _ -> false;
+
+//name overloading
+a = 5 ;
+a = "abcd" ; //correct
+b = a + 1; //correct
+b = a ++ "ef" ; //correct
+c = a ;//Error: cannot infer type
+f :: int -> int
+f :: char -> int //correct
+f :: int -> char //Error: f is already declared
+
+//Input / Output and streams
+//Input :: Char
+//Output :: String -> void
+
+stream concat
+    input c :: char,
+    state
+    output l = c::l;
+
+//Each time user presses character it prints all characters before
+Output (concat.l Input)
+
+stream s
+    input n :: int
+    state b = n > 0
+    output a = n + 1
+
+f (s.b 1) //Error: output b not found
+f (s.a 1) //Correct
+

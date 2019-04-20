@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1cm]{geometry}
+\usepackage[english]{babel}
+\usepackage{polski}
+\usepackage{titling}
+\usepackage{romannum}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathdots}
+\usepackage{fullpage}
+\usepackage{gensymb}
+
+\def\R{\mathbb{R}}
+\def\C{\mathbb{C}}
+\def\Z{\mathbb{Z}}
+\def\Q{\mathbb{Q}}
+\def\N{\mathbb{N}}
+\def\Rn{\mathbb{R}^n}
+\def\E{\mathcal{E}}
+\def\B{\mathcal{B}}
+\def\nor{\trianglelefteq}
+\def\ker{\operatorname{ker}}
+\def\gengru#1{\langle\,#1 \,\rangle}
+\def\ch{\blacktriangleleft}
+\def\arr{\longrightarrow}
+\def\Abs#1{\left\vert#1\right\vert}
+\def\rk{\operatorname{rank}}
+\def\lin{\operatorname{lin}}
+\def\af{\operatorname{af}}
+\def\dim{\operatorname{dim}}
+\def\ker{\operatorname{ker}}
+\def\im{\operatorname{im}}
+\def\tr{\operatorname{tr}}
+\def\Hom{\operatorname{Hom}}
+\def\Aut{\operatorname{Aut}}
+\def\id{\triangleleft}
+\def\iif{\operatorname{if}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\def\normsign{\|\cdot\|}
+\newcommand{\series}[3]{\sum_{#1}^{#2}#3}
+
+\setlength{\droptitle}{-2cm}
+
+\selectlanguage{english}
+\title{Language description}
+\author{Tomasz Kanas}
+
+\begin{document}
+\pagenumbering{gobble}
+\maketitle
+\section{General concept}
+Language will be pure functional, static typed with eager evaluation. Language will have recursive algebraic (but not polymorphic) types, with a bit unusual syntax: type unions will be indexed (instead of tagged). Language will also feature name overloading, which means that there can exist many values with the same names, as long as they have different types (functions need to have different argument types). Input/Output will be implemented in reactive style, which means that there will be Input stream which will behave as char value, except that the computation will be carried on every input character sequentially. To enhance reactive style, language will feature ``stream'' data types. Each stream will have input (arguments), state (private) and output (public), and will behave similarly as a function from (labeled) tuple to (labeled) tuple, except that every expression inside string will be implicitly function of input, state and output (from previous computation).
+\section{Language features}
+\begin{itemize}
+    \item Basic types: int, char, bool, void
+    \item Basic (int and bool) arithmetic, comparisons, `let \dots in', `if \dots then \dots else \dots'
+    \item Anonymous and named functions, recursion, partial application, higher-level functions
+    \item Runtime error handling
+    \item Algebraic, recursive types, type aliases
+    \item Static name binding
+    \item Static typing
+    \item Multi-level pattern matching (`match \dots with \dots')
+    \item Syntax sugar for list types: constructors and patterns `head:tail', `[items]`
+    \item name overloading
+    \item stream data types
+    \item reactive Input/Output
+    \item type reconstruction
+\end{itemize}
+
+\subsection*{Language complexity estimation}
+For full implementation of this language i hope to get 30 points.
+
+\end{document}
