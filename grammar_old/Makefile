@@ -1,14 +1,8 @@
-all: grammar test
-
-grammar: ParGrammar.hs LexGrammar.hs
-
-ParGrammar.hs: ParGrammar.y
+all:
 	happy -gca -i ParGrammar.y
-
-LexGrammar.hs: LexGrammar.x
 	alex -g LexGrammar.x
 	
-test: ParGrammar.hs LexGrammar.hs
+test:
 	ghc --make TestGrammar.hs -o TestGrammar
 
 clean:

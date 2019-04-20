@@ -1,8 +1,5 @@
 #!/bin/bash
 bnfc -haskell Grammar.cf
-mv DocGrammar.txt ../doc
+mv DocGrammar.* ../doc
 make all
 make clean
-mv TestGrammar ../test
-
-

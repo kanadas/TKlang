@@ -12,94 +12,52 @@ failure x = Bad $ "Undefined case: " ++ show x
 transIdent :: Ident -> Result
 transIdent x = case x of
   Ident string -> failure x
-transMulOp :: MulOp -> Result
-transMulOp x = case x of
-  MulOp string -> failure x
-transAddOp :: AddOp -> Result
-transAddOp x = case x of
-  AddOp string -> failure x
 transRelOp :: RelOp -> Result
 transRelOp x = case x of
   RelOp string -> failure x
-transProgram :: Program -> Result
-transProgram x = case x of
-  Program topdefs -> failure x
-transTopDef :: TopDef -> Result
-transTopDef x = case x of
-  TopDefVDecl vdecl -> failure x
-  TopDefTDecl tdecl -> failure x
-  TopDefDef def -> failure x
-  TopDefStream stream -> failure x
-transVDecl :: VDecl -> Result
-transVDecl x = case x of
-  VDecl ident type_ -> failure x
-transTDecl :: TDecl -> Result
-transTDecl x = case x of
-  TDecl ident type_ -> failure x
-transDef :: Def -> Result
-transDef x = case x of
-  Def ident args expr -> failure x
-transArg :: Arg -> Result
-transArg x = case x of
-  Arg ident -> failure x
-transELit :: ELit -> Result
-transELit x = case x of
-  ELitInteger integer -> failure x
-  ELitString string -> failure x
-  ELitQIdent qident -> failure x
-  ELit_true -> failure x
-  ELit_false -> failure x
-  ELit1 -> failure x
-  ELit2 -> failure x
+transLit :: Lit -> Result
+transLit x = case x of
+  LitInteger integer -> failure x
+  LitChar char -> failure x
+  LitString string -> failure x
+  LitIdent ident -> failure x
+  Lit_true -> failure x
+  Lit_false -> failure x
+  Lit1 -> failure x
+  Lit2 -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
-  ELit elit -> failure x
-  ENeg expr -> failure x
+  ELit lit -> failure x
   ENot expr -> failure x
-  EFunApp expr1 expr2 -> failure x
-  EMul expr1 mulop expr2 -> failure x
-  EAdd expr1 addop expr2 -> failure x
+  ETuple expr exprs -> failure x
+  EList exprs -> failure x
+  ELambda idents expr -> failure x
+  EApp expr1 expr2 -> failure x
+  EMul expr1 expr2 -> failure x
+  EDiv expr1 expr2 -> failure x
+  EAdd expr1 expr2 -> failure x
+  ESub expr1 expr2 -> failure x
+  EConcat expr1 expr2 -> failure x
+  ENeg expr -> failure x
   ERel expr1 relop expr2 -> failure x
   EAnd expr1 expr2 -> failure x
   EOr expr1 expr2 -> failure x
-  EUnion expr1 expr2 -> failure x
   EAppend expr1 expr2 -> failure x
-  ETuple expr exprs -> failure x
-  EList exprs -> failure x
-  ELambda args expr -> failure x
+  EUnion expr1 expr2 -> failure x
   EIf expr1 expr2 expr3 -> failure x
-  ELet def expr -> failure x
-  EMatch expr alternatives -> failure x
   EType expr type_ -> failure x
-transAlternative :: Alternative -> Result
-transAlternative x = case x of
-  MAlternative pattern expr -> failure x
-transPattern :: Pattern -> Result
-transPattern x = case x of
-  PIdent ident -> failure x
-  PAny -> failure x
-  PTuple pattern patterns -> failure x
-  PList patterns -> failure x
-  PUnion integer pattern -> failure x
-  PListHT pattern1 pattern2 -> failure x
-transTBasic :: TBasic -> Result
-transTBasic x = case x of
-  TBasic_int -> failure x
-  TBasic_bool -> failure x
-  TBasic_char -> failure x
-  TBasic_void -> failure x
-  TBasicIdent ident -> failure x
+transBasic :: Basic -> Result
+transBasic x = case x of
+  Basic_int -> failure x
+  Basic_bool -> failure x
+  Basic_char -> failure x
+  Basic_void -> failure x
+  BasicIdent ident -> failure x
 transType :: Type -> Result
 transType x = case x of
-  TBasic tbasic -> failure x
+  TBasic basic -> failure x
   TProduct type_1 type_2 -> failure x
   TUnion type_1 type_2 -> failure x
   TFun type_1 type_2 -> failure x
   TList type_ -> failure x
-transStream :: Stream -> Result
-transStream x = case x of
-  Stream ident vdecls topdefs1 topdefs2 -> failure x
-transQIdent :: QIdent -> Result
-transQIdent x = case x of
-  Qual ident1 ident2 -> failure x
 

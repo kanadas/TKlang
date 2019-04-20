@@ -8,93 +8,53 @@ module AbsGrammar where
 
 
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
-newtype MulOp = MulOp String deriving (Eq, Ord, Show, Read)
-newtype AddOp = AddOp String deriving (Eq, Ord, Show, Read)
 newtype RelOp = RelOp String deriving (Eq, Ord, Show, Read)
-data Program = Program [TopDef]
-  deriving (Eq, Ord, Show, Read)
-
-data TopDef
-    = TopDefVDecl VDecl
-    | TopDefTDecl TDecl
-    | TopDefDef Def
-    | TopDefStream Stream
-  deriving (Eq, Ord, Show, Read)
-
-data VDecl = VDecl Ident Type
-  deriving (Eq, Ord, Show, Read)
-
-data TDecl = TDecl Ident Type
-  deriving (Eq, Ord, Show, Read)
-
-data Def = Def Ident [Arg] Expr
-  deriving (Eq, Ord, Show, Read)
-
-data Arg = Arg Ident
-  deriving (Eq, Ord, Show, Read)
-
-data ELit
-    = ELitInteger Integer
-    | ELitString String
-    | ELitQIdent QIdent
-    | ELit_true
-    | ELit_false
-    | ELit1
-    | ELit2
+data Lit
+    = LitInteger Integer
+    | LitChar Char
+    | LitString String
+    | LitIdent Ident
+    | Lit_true
+    | Lit_false
+    | Lit1
+    | Lit2
   deriving (Eq, Ord, Show, Read)
 
 data Expr
-    = ELit ELit
-    | ENeg Expr
+    = ELit Lit
     | ENot Expr
-    | EFunApp Expr Expr
-    | EMul Expr MulOp Expr
-    | EAdd Expr AddOp Expr
+    | ETuple Expr [Expr]
+    | EList [Expr]
+    | ELambda [Ident] Expr
+    | EApp Expr Expr
+    | EMul Expr Expr
+    | EDiv Expr Expr
+    | EAdd Expr Expr
+    | ESub Expr Expr
+    | EConcat Expr Expr
+    | ENeg Expr
     | ERel Expr RelOp Expr
     | EAnd Expr Expr
     | EOr Expr Expr
-    | EUnion Expr Expr
     | EAppend Expr Expr
-    | ETuple Expr [Expr]
-    | EList [Expr]
-    | ELambda [Arg] Expr
+    | EUnion Expr Expr
     | EIf Expr Expr Expr
-    | ELet Def Expr
-    | EMatch Expr [Alternative]
     | EType Expr Type
   deriving (Eq, Ord, Show, Read)
 
-data Alternative = MAlternative Pattern Expr
-  deriving (Eq, Ord, Show, Read)
-
-data Pattern
-    = PIdent Ident
-    | PAny
-    | PTuple Pattern [Pattern]
-    | PList [Pattern]
-    | PUnion Integer Pattern
-    | PListHT Pattern Pattern
-  deriving (Eq, Ord, Show, Read)
-
-data TBasic
-    = TBasic_int
-    | TBasic_bool
-    | TBasic_char
-    | TBasic_void
-    | TBasicIdent Ident
+data Basic
+    = Basic_int
+    | Basic_bool
+    | Basic_char
+    | Basic_void
+    | BasicIdent Ident
   deriving (Eq, Ord, Show, Read)
 
 data Type
-    = TBasic TBasic
+    = TBasic Basic
     | TProduct Type Type
     | TUnion Type Type
     | TFun Type Type
     | TList Type
-  deriving (Eq, Ord, Show, Read)
-
-data Stream = Stream Ident [VDecl] [TopDef] [TopDef]
-  deriving (Eq, Ord, Show, Read)
-
-data QIdent = Qual Ident Ident
   deriving (Eq, Ord, Show, Read)
 

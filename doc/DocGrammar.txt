@@ -17,8 +17,11 @@ reserved words excluded.
 
 
 ===Literals===
-
 Integer literals //Integer// are nonempty sequences of digits.
+
+
+Character literals //Char// have the form
+``'``//c//``'``, where //c// is any single character.
 
 
 String literals //String// have the form
@@ -29,15 +32,8 @@ except ``"`` unless preceded by ``\``.
 
 
 
-
-MulOp literals are recognized by the regular expression
-`````'*' | '/'`````
-
-AddOp literals are recognized by the regular expression
-`````'+' | '-' | ["++"]`````
-
 RelOp literals are recognized by the regular expression
-`````'>' | '<' | ["<="] | [">="] | ["=="] | ["!="]`````
+`````'>' | '<' | {"<="} | {">="} | {"=="} | {"!="}`````
 
 
 ===Reserved words and symbols===
@@ -45,18 +41,15 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in Grammar are the following:
   | ``bool`` | ``char`` | ``else`` | ``false``
-  | ``if`` | ``in`` | ``input`` | ``int``
-  | ``is`` | ``let`` | ``match`` | ``output``
-  | ``state`` | ``stream`` | ``then`` | ``true``
-  | ``type`` | ``void`` | ``with`` | 
+  | ``if`` | ``int`` | ``then`` | ``true``
+  | ``void`` |  |  | 
 
 The symbols used in Grammar are the following:
-  | ; | :: | = | ()
-  | [] | - | ! | &
-  | | | @ | : | (
+  | () | [] | ! | (
   | , | ) | [ | ]
-  | (\ | -> | { | }
-  | _ | * | + | .
+  | (\ | -> | * | /
+  | + | - | ++ | &
+  | | | : | @ | ::
 
 ===Comments===
 Single-line comments begin with //, #.Multiple-line comments are  enclosed with /* and */.
@@ -67,87 +60,62 @@ The symbols -> (production),  **|**  (union)
 and **eps** (empty rule) belong to the BNF notation. 
 All other symbols are terminals.
 
-  | //Program// | -> | //[TopDef]// 
-  | //[TopDef]// | -> | **eps**
-  |  |  **|**  | //TopDef// 
-  |  |  **|**  | //TopDef// ``;`` //[TopDef]// 
-  | //TopDef// | -> | //VDecl// 
-  |  |  **|**  | //TDecl// 
-  |  |  **|**  | //Def// 
-  |  |  **|**  | //Stream// 
-  | //VDecl// | -> | //Ident// ``::`` //Type// 
-  | //TDecl// | -> | ``type`` //Ident// ``is`` //Type// 
-  | //Def// | -> | //Ident// //[Arg]// ``=`` //Expr// 
-  | //Arg// | -> | //Ident// 
-  | //[Arg]// | -> | **eps**
-  |  |  **|**  | //Arg// //[Arg]// 
-  | //ELit// | -> | //Integer// 
+  | //Lit// | -> | //Integer// 
+  |  |  **|**  | //Char// 
   |  |  **|**  | //String// 
-  |  |  **|**  | //QIdent// 
+  |  |  **|**  | //Ident// 
   |  |  **|**  | ``true`` 
   |  |  **|**  | ``false`` 
   |  |  **|**  | ``()`` 
   |  |  **|**  | ``[]`` 
-  | //Expr11// | -> | //ELit// 
+  | //Expr11// | -> | //Lit// 
+  |  |  **|**  | ``!`` //Expr11// 
+  |  |  **|**  | ``(`` //Expr// ``,`` //[Expr]// ``)`` 
+  |  |  **|**  | ``[`` //[Expr]// ``]`` 
+  |  |  **|**  | ``(\`` //[Ident]// ``->`` //Expr// ``)`` 
   |  |  **|**  | ``(`` //Expr// ``)`` 
-  | //Expr10// | -> | ``-`` //Expr10// 
-  |  |  **|**  | ``!`` //Expr10// 
+  | //Expr10// | -> | //Expr10// //Expr11// 
   |  |  **|**  | //Expr11// 
-  | //Expr9// | -> | //Expr// //Expr10// 
+  | //Expr9// | -> | //Expr9// ``*`` //Expr10// 
+  |  |  **|**  | //Expr9// ``/`` //Expr10// 
   |  |  **|**  | //Expr10// 
-  | //Expr8// | -> | //Expr8// //MulOp// //Expr9// 
+  | //Expr8// | -> | //Expr8// ``+`` //Expr9// 
+  |  |  **|**  | //Expr8// ``-`` //Expr9// 
+  |  |  **|**  | //Expr8// ``++`` //Expr9// 
   |  |  **|**  | //Expr9// 
-  | //Expr7// | -> | //Expr7// //AddOp// //Expr8// 
+  | //Expr7// | -> | ``-`` //Expr7// 
   |  |  **|**  | //Expr8// 
   | //Expr6// | -> | //Expr6// //RelOp// //Expr7// 
   |  |  **|**  | //Expr7// 
-  | //Expr5// | -> | //Expr6// ``&`` //Expr5// 
+  | //Expr5// | -> | //Expr5// ``&`` //Expr6// 
   |  |  **|**  | //Expr6// 
-  | //Expr4// | -> | //Expr5// ``|`` //Expr4// 
+  | //Expr4// | -> | //Expr4// ``|`` //Expr5// 
   |  |  **|**  | //Expr5// 
-  | //Expr3// | -> | //Expr4// ``@`` //Expr3// 
+  | //Expr3// | -> | //Expr3// ``:`` //Expr4// 
   |  |  **|**  | //Expr4// 
-  | //Expr2// | -> | //Expr2// ``:`` //Expr1// 
-  |  |  **|**  | ``(`` //Expr// ``,`` //[Expr]// ``)`` 
-  |  |  **|**  | ``[`` //[Expr]// ``]`` 
-  |  |  **|**  | ``(\`` //[Arg]// ``->`` //Expr// ``)`` 
+  | //Expr2// | -> | //Expr2// ``@`` //Expr3// 
   |  |  **|**  | //Expr3// 
-  | //Expr1// | -> | ``if`` //Expr// ``then`` //Expr// ``else`` //Expr// 
-  |  |  **|**  | ``let`` //Def// ``in`` //Expr// 
-  |  |  **|**  | ``match`` //Expr// ``with`` ``{`` //[Alternative]// ``}`` 
+  | //Expr1// | -> | ``if`` //Expr// ``then`` //Expr// ``else`` //Expr1// 
   |  |  **|**  | //Expr2// 
   | //Expr// | -> | //Expr1// ``::`` //Type// 
   |  |  **|**  | //Expr1// 
   | //[Expr]// | -> | //Expr// 
   |  |  **|**  | //Expr// ``,`` //[Expr]// 
-  | //Alternative// | -> | //Pattern// ``->`` //Expr// 
-  | //[Alternative]// | -> | //Alternative// 
-  |  |  **|**  | //Alternative// ``;`` //[Alternative]// 
-  | //Pattern// | -> | //Ident// 
-  |  |  **|**  | ``_`` 
-  |  |  **|**  | ``(`` //Pattern// ``,`` //[Pattern]// ``)`` 
-  |  |  **|**  | ``[`` //[Pattern]// ``]`` 
-  |  |  **|**  | //Integer// ``@`` //Pattern// 
-  |  |  **|**  | //Pattern// ``:`` //Pattern// 
-  | //[Pattern]// | -> | //Pattern// 
-  |  |  **|**  | //Pattern// ``,`` //[Pattern]// 
-  | //TBasic// | -> | ``int`` 
+  | //[Ident]// | -> | **eps**
+  |  |  **|**  | //Ident// //[Ident]// 
+  | //Basic// | -> | ``int`` 
   |  |  **|**  | ``bool`` 
   |  |  **|**  | ``char`` 
   |  |  **|**  | ``void`` 
   |  |  **|**  | //Ident// 
-  | //Type3// | -> | //TBasic// 
+  | //Type3// | -> | //Basic// 
   |  |  **|**  | ``(`` //Type// ``)`` 
-  | //Type2// | -> | //Type1// ``*`` //Type2// 
+  | //Type2// | -> | //Type2// ``*`` //Type3// 
   |  |  **|**  | //Type3// 
-  | //Type1// | -> | //Type// ``+`` //Type1// 
+  | //Type1// | -> | //Type1// ``+`` //Type2// 
   |  |  **|**  | //Type2// 
-  | //Type// | -> | //Type// ``->`` //Type// 
+  | //Type// | -> | //Type1// ``->`` //Type// 
   |  |  **|**  | ``[`` //Type// ``]`` 
   |  |  **|**  | //Type1// 
-  | //Stream// | -> | ``stream`` //Ident// ``input`` //[VDecl]// ``state`` //[TopDef]// ``output`` //[TopDef]// 
-  | //[VDecl]// | -> | //VDecl// 
-  |  |  **|**  | //VDecl// ``,`` //[VDecl]// 
-  | //QIdent// | -> | //Ident// ``.`` //Ident// 
 
 
