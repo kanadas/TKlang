@@ -1,0 +1,10 @@
+expr/expr6.in
+Error: Undefined case: ETuple (EString "alala") [EType (EConcat (EList [EInt 2,EInt 3,EString "lala"]) EEmpty) (TList (TUnion (TBasic (Basic "int")) (TIdent (Ident "string")))),EVoid]
+
+[Abstract Syntax]
+
+ETuple (EString "alala") [EType (EConcat (EList [EInt 2,EInt 3,EString "lala"]) EEmpty) (TList (TUnion (TBasic (Basic "int")) (TIdent (Ident "string")))),EVoid]
+
+[Linearized tree]
+
+("alala", [2, 3, "lala"] ++ [] :: [int + string], ())

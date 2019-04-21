@@ -1,7 +1,13 @@
 entrypoints Expr;
 
-rules           Lit ::= Integer | Char | String | Ident | "true" | "false" | "()" | "[]";
-ELit.           Expr11 ::= Lit ;
+EInt.           Expr11 ::= Integer;
+EChar.          Expr11 ::= Char;
+EString.        Expr11 ::= String ;
+EIdent.         Expr11 ::= Ident;
+ETrue.          Expr11 ::= "true";
+EFalse.         Expr11 ::= "false";
+EVoid.          Expr11 ::= "()";
+EEmpty.         Expr11 ::= "[]";
 ENot.           Expr11 ::= "!" Expr11 ;
 ETuple.         Expr11 ::= "(" Expr "," [Expr] ")" ;
 EList.          Expr11 ::= "[" [Expr] "]" ;
@@ -19,7 +25,7 @@ EOr.            Expr4 ::= Expr4 "|" Expr5 ;
 EAppend.        Expr3 ::= Expr3 ":" Expr4 ;  --appends to front of list
 EUnion.         Expr2 ::= Expr2 "@" Expr3 ;  --creates enumerated union
 EIf.            Expr1 ::= "if" Expr "then" Expr "else" Expr1 ;
---ELet.           Expr1 ::= "let" Def "in" Expr1 ;
+ELet.           Expr1 ::= "let" Ident "=" Expr "in" Expr1 ;
 --EMatch.         Expr1 ::= "match" Expr "with" "{" [Alternative] "}";
 EType.          Expr  ::= Expr1 "::" Type ;
 coercions Expr 11 ;
@@ -27,9 +33,17 @@ coercions Expr 11 ;
 separator nonempty Expr "," ;
 separator Ident "";
 
---token MulOp     ('*' | '/') ;
---token AddOp     ('+' | '-' | {"++"}); -- "++" is list concatenation
 token RelOp     ('>' | '<' | {"<="} | {">="} | {"=="} | {"!="}) ;
+
+TBasic.         Type3 ::= Basic ;
+TIdent.         Type3 ::= Ident ;
+TProduct.       Type2 ::= Type2 "*" Type3 ;
+TUnion.         Type1 ::= Type1 "+" Type2 ;
+TFun.           Type ::= Type1 "->" Type ;
+TList.          Type ::= "[" Type "]" ;--syntax sugar for list type
+coercions Type 3 ;
+
+token Basic     ({"int"} | {"bool"} | {"char"} | {"void"}) ;
 
 --MAlternative.   Alternative ::= Pattern "->" Expr ;
 --separator nonempty Alternative ";" ;
@@ -43,14 +57,6 @@ token RelOp     ('>' | '<' | {"<="} | {">="} | {"=="} | {"!="}) ;
 --PString         Pattern ::= String ;
 
 --separator nonempty Pattern "," ;
-
-rules           Basic ::= "int" | "bool" | "char" | "void" | Ident ;
-TBasic.         Type3 ::= Basic ;
-TProduct.       Type2 ::= Type2 "*" Type3 ;
-TUnion.         Type1 ::= Type1 "+" Type2 ;
-TFun.           Type ::= Type1 "->" Type ;
-TList.          Type ::= "[" Type "]" ;--syntax sugar for list type
-coercions Type 3 ;
 
 --Qual.           QIdent ::= Ident "." Ident ;
 

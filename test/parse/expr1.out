@@ -1,0 +1,11 @@
+parse/expr1.in
+
+Parse Successful!
+
+[Abstract Syntax]
+
+EAdd (EMul (EInt 2) (EInt 3)) (EInt 5)
+
+[Linearized tree]
+
+2 * 3 + 5

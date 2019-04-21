@@ -32,24 +32,28 @@ except ``"`` unless preceded by ``\``.
 
 
 
+
 RelOp literals are recognized by the regular expression
 `````'>' | '<' | {"<="} | {">="} | {"=="} | {"!="}`````
+
+Basic literals are recognized by the regular expression
+`````{"int"} | {"bool"} | {"char"} | {"void"}`````
 
 
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in Grammar are the following:
-  | ``bool`` | ``char`` | ``else`` | ``false``
-  | ``if`` | ``int`` | ``then`` | ``true``
-  | ``void`` |  |  | 
+  | ``else`` | ``false`` | ``if`` | ``in``
+  | ``let`` | ``then`` | ``true`` | 
 
 The symbols used in Grammar are the following:
   | () | [] | ! | (
   | , | ) | [ | ]
   | (\ | -> | * | /
   | + | - | ++ | &
-  | | | : | @ | ::
+  | | | : | @ | =
+  | :: |  |  | 
 
 ===Comments===
 Single-line comments begin with //, #.Multiple-line comments are  enclosed with /* and */.
@@ -60,7 +64,7 @@ The symbols -> (production),  **|**  (union)
 and **eps** (empty rule) belong to the BNF notation. 
 All other symbols are terminals.
 
-  | //Lit// | -> | //Integer// 
+  | //Expr11// | -> | //Integer// 
   |  |  **|**  | //Char// 
   |  |  **|**  | //String// 
   |  |  **|**  | //Ident// 
@@ -68,7 +72,6 @@ All other symbols are terminals.
   |  |  **|**  | ``false`` 
   |  |  **|**  | ``()`` 
   |  |  **|**  | ``[]`` 
-  | //Expr11// | -> | //Lit// 
   |  |  **|**  | ``!`` //Expr11// 
   |  |  **|**  | ``(`` //Expr// ``,`` //[Expr]// ``)`` 
   |  |  **|**  | ``[`` //[Expr]// ``]`` 
@@ -96,6 +99,7 @@ All other symbols are terminals.
   | //Expr2// | -> | //Expr2// ``@`` //Expr3// 
   |  |  **|**  | //Expr3// 
   | //Expr1// | -> | ``if`` //Expr// ``then`` //Expr// ``else`` //Expr1// 
+  |  |  **|**  | ``let`` //Ident// ``=`` //Expr// ``in`` //Expr1// 
   |  |  **|**  | //Expr2// 
   | //Expr// | -> | //Expr1// ``::`` //Type// 
   |  |  **|**  | //Expr1// 
@@ -103,12 +107,8 @@ All other symbols are terminals.
   |  |  **|**  | //Expr// ``,`` //[Expr]// 
   | //[Ident]// | -> | **eps**
   |  |  **|**  | //Ident// //[Ident]// 
-  | //Basic// | -> | ``int`` 
-  |  |  **|**  | ``bool`` 
-  |  |  **|**  | ``char`` 
-  |  |  **|**  | ``void`` 
-  |  |  **|**  | //Ident// 
   | //Type3// | -> | //Basic// 
+  |  |  **|**  | //Ident// 
   |  |  **|**  | ``(`` //Type// ``)`` 
   | //Type2// | -> | //Type2// ``*`` //Type3// 
   |  |  **|**  | //Type3// 

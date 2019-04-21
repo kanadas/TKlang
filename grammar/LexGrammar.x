@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \( \) | \[ \] | \! | \( | \, | \) | \[ | \] | \( \\ | \- \> | \* | \/ | \+ | \- | \+ \+ | \& | \| | \: | \@ | \: \:
+   \( \) | \[ \] | \! | \( | \, | \) | \[ | \] | \( \\ | \- \> | \* | \/ | \+ | \- | \+ \+ | \& | \| | \: | \@ | \= | \: \:
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -31,6 +31,7 @@ $u = [\0-\255]          -- universal: any character
 $white+ ;
 @rsyms { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 \> | \< | \< \= | \> \= | \= \= | \! \= { tok (\p s -> PT p (eitherResIdent (T_RelOp . share) s)) }
+i n t | b o o l | c h a r | v o i d { tok (\p s -> PT p (eitherResIdent (T_Basic . share) s)) }
 
 $l $i*   { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 \" ([$u # [\" \\ \n]] | (\\ (\" | \\ | \' | n | t)))* \"{ tok (\p s -> PT p (TL $ share $ unescapeInitTail s)) }
@@ -54,6 +55,7 @@ data Tok =
  | TD !String         -- double precision float literals
  | TC !String         -- character literals
  | T_RelOp !String
+ | T_Basic !String
 
  deriving (Eq,Show,Ord)
 
@@ -92,6 +94,7 @@ prToken t = case t of
   PT _ (TC s)   -> s
   Err _         -> "#error"
   PT _ (T_RelOp s) -> s
+  PT _ (T_Basic s) -> s
 
 
 data BTree = N | B String Tok BTree BTree deriving (Show)
@@ -105,7 +108,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "::" 15 (b "+" 8 (b "()" 4 (b "&" 2 (b "!" 1 N N) (b "(" 3 N N)) (b ")" 6 (b "(\\" 5 N N) (b "*" 7 N N))) (b "->" 12 (b "," 10 (b "++" 9 N N) (b "-" 11 N N)) (b ":" 14 (b "/" 13 N N) N))) (b "false" 23 (b "]" 19 (b "[" 17 (b "@" 16 N N) (b "[]" 18 N N)) (b "char" 21 (b "bool" 20 N N) (b "else" 22 N N))) (b "true" 27 (b "int" 25 (b "if" 24 N N) (b "then" 26 N N)) (b "|" 29 (b "void" 28 N N) N)))
+resWords = b "::" 15 (b "+" 8 (b "()" 4 (b "&" 2 (b "!" 1 N N) (b "(" 3 N N)) (b ")" 6 (b "(\\" 5 N N) (b "*" 7 N N))) (b "->" 12 (b "," 10 (b "++" 9 N N) (b "-" 11 N N)) (b ":" 14 (b "/" 13 N N) N))) (b "false" 22 (b "[]" 19 (b "@" 17 (b "=" 16 N N) (b "[" 18 N N)) (b "else" 21 (b "]" 20 N N) N)) (b "then" 26 (b "in" 24 (b "if" 23 N N) (b "let" 25 N N)) (b "|" 28 (b "true" 27 N N) N)))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

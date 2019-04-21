@@ -15,19 +15,19 @@ transIdent x = case x of
 transRelOp :: RelOp -> Result
 transRelOp x = case x of
   RelOp string -> failure x
-transLit :: Lit -> Result
-transLit x = case x of
-  LitInteger integer -> failure x
-  LitChar char -> failure x
-  LitString string -> failure x
-  LitIdent ident -> failure x
-  Lit_true -> failure x
-  Lit_false -> failure x
-  Lit1 -> failure x
-  Lit2 -> failure x
+transBasic :: Basic -> Result
+transBasic x = case x of
+  Basic string -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
-  ELit lit -> failure x
+  EInt integer -> failure x
+  EChar char -> failure x
+  EString string -> failure x
+  EIdent ident -> failure x
+  ETrue -> failure x
+  EFalse -> failure x
+  EVoid -> failure x
+  EEmpty -> failure x
   ENot expr -> failure x
   ETuple expr exprs -> failure x
   EList exprs -> failure x
@@ -45,17 +45,12 @@ transExpr x = case x of
   EAppend expr1 expr2 -> failure x
   EUnion expr1 expr2 -> failure x
   EIf expr1 expr2 expr3 -> failure x
+  ELet ident expr1 expr2 -> failure x
   EType expr type_ -> failure x
-transBasic :: Basic -> Result
-transBasic x = case x of
-  Basic_int -> failure x
-  Basic_bool -> failure x
-  Basic_char -> failure x
-  Basic_void -> failure x
-  BasicIdent ident -> failure x
 transType :: Type -> Result
 transType x = case x of
   TBasic basic -> failure x
+  TIdent ident -> failure x
   TProduct type_1 type_2 -> failure x
   TUnion type_1 type_2 -> failure x
   TFun type_1 type_2 -> failure x

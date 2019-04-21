@@ -28,26 +28,26 @@ import ErrM
   '/' { PT _ (TS _ 13) }
   ':' { PT _ (TS _ 14) }
   '::' { PT _ (TS _ 15) }
-  '@' { PT _ (TS _ 16) }
-  '[' { PT _ (TS _ 17) }
-  '[]' { PT _ (TS _ 18) }
-  ']' { PT _ (TS _ 19) }
-  'bool' { PT _ (TS _ 20) }
-  'char' { PT _ (TS _ 21) }
-  'else' { PT _ (TS _ 22) }
-  'false' { PT _ (TS _ 23) }
-  'if' { PT _ (TS _ 24) }
-  'int' { PT _ (TS _ 25) }
+  '=' { PT _ (TS _ 16) }
+  '@' { PT _ (TS _ 17) }
+  '[' { PT _ (TS _ 18) }
+  '[]' { PT _ (TS _ 19) }
+  ']' { PT _ (TS _ 20) }
+  'else' { PT _ (TS _ 21) }
+  'false' { PT _ (TS _ 22) }
+  'if' { PT _ (TS _ 23) }
+  'in' { PT _ (TS _ 24) }
+  'let' { PT _ (TS _ 25) }
   'then' { PT _ (TS _ 26) }
   'true' { PT _ (TS _ 27) }
-  'void' { PT _ (TS _ 28) }
-  '|' { PT _ (TS _ 29) }
+  '|' { PT _ (TS _ 28) }
 
 L_integ  { PT _ (TI $$) }
 L_charac { PT _ (TC $$) }
 L_quoted { PT _ (TL $$) }
 L_ident  { PT _ (TV $$) }
 L_RelOp { PT _ (T_RelOp $$) }
+L_Basic { PT _ (T_Basic $$) }
 
 
 %%
@@ -57,18 +57,17 @@ Char    :: { Char }    : L_charac { (read ( $1)) :: Char }
 String  :: { String }  : L_quoted {  $1 }
 Ident   :: { Ident }   : L_ident  { Ident $1 }
 RelOp    :: { RelOp} : L_RelOp { RelOp ($1)}
+Basic    :: { Basic} : L_Basic { Basic ($1)}
 
-Lit :: { Lit }
-Lit : Integer { AbsGrammar.LitInteger $1 }
-    | Char { AbsGrammar.LitChar $1 }
-    | String { AbsGrammar.LitString $1 }
-    | Ident { AbsGrammar.LitIdent $1 }
-    | 'true' { AbsGrammar.Lit_true }
-    | 'false' { AbsGrammar.Lit_false }
-    | '()' { AbsGrammar.Lit1 }
-    | '[]' { AbsGrammar.Lit2 }
 Expr11 :: { Expr }
-Expr11 : Lit { AbsGrammar.ELit $1 }
+Expr11 : Integer { AbsGrammar.EInt $1 }
+       | Char { AbsGrammar.EChar $1 }
+       | String { AbsGrammar.EString $1 }
+       | Ident { AbsGrammar.EIdent $1 }
+       | 'true' { AbsGrammar.ETrue }
+       | 'false' { AbsGrammar.EFalse }
+       | '()' { AbsGrammar.EVoid }
+       | '[]' { AbsGrammar.EEmpty }
        | '!' Expr11 { AbsGrammar.ENot $2 }
        | '(' Expr ',' ListExpr ')' { AbsGrammar.ETuple $2 $4 }
        | '[' ListExpr ']' { AbsGrammar.EList $2 }
@@ -100,6 +99,7 @@ Expr2 :: { Expr }
 Expr2 : Expr2 '@' Expr3 { AbsGrammar.EUnion $1 $3 } | Expr3 { $1 }
 Expr1 :: { Expr }
 Expr1 : 'if' Expr 'then' Expr 'else' Expr1 { AbsGrammar.EIf $2 $4 $6 }
+      | 'let' Ident '=' Expr 'in' Expr1 { AbsGrammar.ELet $2 $4 $6 }
       | Expr2 { $1 }
 Expr :: { Expr }
 Expr : Expr1 '::' Type { AbsGrammar.EType $1 $3 } | Expr1 { $1 }
@@ -107,14 +107,10 @@ ListExpr :: { [Expr] }
 ListExpr : Expr { (:[]) $1 } | Expr ',' ListExpr { (:) $1 $3 }
 ListIdent :: { [Ident] }
 ListIdent : {- empty -} { [] } | Ident ListIdent { (:) $1 $2 }
-Basic :: { Basic }
-Basic : 'int' { AbsGrammar.Basic_int }
-      | 'bool' { AbsGrammar.Basic_bool }
-      | 'char' { AbsGrammar.Basic_char }
-      | 'void' { AbsGrammar.Basic_void }
-      | Ident { AbsGrammar.BasicIdent $1 }
 Type3 :: { Type }
-Type3 : Basic { AbsGrammar.TBasic $1 } | '(' Type ')' { $2 }
+Type3 : Basic { AbsGrammar.TBasic $1 }
+      | Ident { AbsGrammar.TIdent $1 }
+      | '(' Type ')' { $2 }
 Type2 :: { Type }
 Type2 : Type2 '*' Type3 { AbsGrammar.TProduct $1 $3 }
       | Type3 { $1 }

@@ -1,0 +1,11 @@
+parse/expr7.in
+
+Parse Successful!
+
+[Abstract Syntax]
+
+EType (ELambda [Ident "a"] (EIdent (Ident "a"))) (TFun (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))) (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))))
+
+[Linearized tree]
+
+(\ a -> a) :: int * int -> int * int

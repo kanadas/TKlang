@@ -1,0 +1,11 @@
+parse/expr3.in
+
+Parse Successful!
+
+[Abstract Syntax]
+
+EApp (ELambda [Ident "x",Ident "y"] (EAnd (EIdent (Ident "x")) (EIdent (Ident "y")))) (ENot (EOr ETrue (EAnd EFalse ETrue)))
+
+[Linearized tree]
+
+(\ x y -> x & y) ! (true | false & true)

@@ -21,13 +21,17 @@ description:         Please see the README on GitHub at <https://github.com/kana
 
 dependencies:
 - base >= 4.7 && < 5
+- array
+- containers
+- mtl
+- transformers
 
 library:
   source-dirs: src
 
 executables:
   tklang-exe:
-    main:                Main.hs
+    main:                TKlang.hs
     source-dirs:         app
     ghc-options:
     - -threaded
@@ -36,13 +40,13 @@ executables:
     dependencies:
     - tklang
 
-tests:
-  tklang-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - tklang
+#tests:
+#  tklang-test:
+#    main:                Spec.hs
+#    source-dirs:         test
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - tklang

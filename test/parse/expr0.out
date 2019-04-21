@@ -1,0 +1,11 @@
+parse/expr0.in
+
+Parse Successful!
+
+[Abstract Syntax]
+
+ERel (EInt 1) (RelOp "==") (EInt 0)
+
+[Linearized tree]
+
+1 == 0

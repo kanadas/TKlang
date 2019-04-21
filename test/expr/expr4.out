@@ -1,0 +1,10 @@
+expr/expr4.in
+Error: Undefined case: EUnion (EInt 2) EVoid
+
+[Abstract Syntax]
+
+EIf (ENot ETrue) (EUnion (EInt 1) (EAppend (EChar 'a') (EConcat (EString "la ma") (EList [EChar ' ',EChar 'k',EChar 'o',EChar 't',EChar 'a'])))) (EUnion (EInt 2) EVoid)
+
+[Linearized tree]
+
+if ! true then 1 @ 'a' : "la ma" ++ [' ', 'k', 'o', 't', 'a'] else 2 @ ()

@@ -1,0 +1,11 @@
+parse/expr5.in
+
+Parse Successful!
+
+[Abstract Syntax]
+
+ELambda [Ident "a",Ident "b"] (EIf (ERel (EAdd (EIdent (Ident "a")) (EIdent (Ident "b"))) (RelOp "==") (EInt 0)) (EString "Zero") (EAdd (EIdent (Ident "a")) (EIdent (Ident "b"))))
+
+[Linearized tree]
+
+(\ a b -> if a + b == 0 then "Zero" else a + b)
