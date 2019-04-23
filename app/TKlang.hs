@@ -11,7 +11,7 @@ import qualified Data.Map as Map
 
 import LexGrammar
 import ParGrammar
-import TransGrammar
+import ComputeGrammar
 import PrintGrammar
 import AbsGrammar
 import ErrM
@@ -36,7 +36,7 @@ run v p s =
             putStrLn s
             exitFailure
         Ok tree -> do 
-            case evalStateT (transExpr tree) Map.empty of
+            case evalStateT (compExpr tree) Map.empty of
                 Right v -> putStrLn (show v) >> exitSuccess
                 Left err -> putStrLn ("Error: " ++ err) >> showTree v tree >> exitFailure
 

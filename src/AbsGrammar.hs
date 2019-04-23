@@ -7,7 +7,7 @@ module AbsGrammar where
 
 
 
-newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
+newtype Ident = Ident {getIdent :: String} deriving (Eq, Ord, Show, Read)
 newtype RelOp = RelOp String deriving (Eq, Ord, Show, Read)
 newtype Basic = Basic String deriving (Eq, Ord, Show, Read)
 data Expr
@@ -40,6 +40,14 @@ data Expr
     | EType Expr Type
   deriving (Eq, Ord, Show, Read)
 
+gt, lt, ge, le, eq, neq :: RelOp
+gt = RelOp ">"
+lt = RelOp "<"
+ge = RelOp ">="
+le = RelOp "<="
+eq = RelOp "=="
+neq = RelOp "!="
+
 data Type
     = TBasic Basic
     | TIdent Ident
@@ -48,4 +56,13 @@ data Type
     | TFun Type Type
     | TList Type
   deriving (Eq, Ord, Show, Read)
+
+data TBasic = TInt | TChar | TBool | TVoid
+
+matchBasic :: Basic -> TBasic
+matchBasic (Basic s) = case s of
+    "int" -> TInt
+    "char" -> TChar
+    "bool" -> TBool
+    "void" -> TVoid
 
