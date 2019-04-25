@@ -59,6 +59,13 @@ data Type
 
 data TBasic = TInt | TChar | TBool | TVoid
 
+instance Show TBasic where
+    show t = case t of
+        TInt -> "int"
+        TChar -> "char"
+        TBool -> "bool"
+        TVoid -> "void"
+
 matchBasic :: Basic -> TBasic
 matchBasic (Basic s) = case s of
     "int" -> TInt

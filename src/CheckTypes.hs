@@ -1,200 +1,238 @@
 --v0.1 just basic types, static typing
-
+--TODO Type unions and products should be lists
 module CheckTypes where
 
 import AbsGrammar
+import PrintGrammar
 --import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Control.Monad.Trans
-import Control.Monad.Trans.State
+import Control.Monad.RWS
+import Control.Monad.Except
 
-data ArrOp = Sum | Prod | Fun deriving Eq
+data TypeError = Undefined Expr | TypeError Expr TAlg TAlg | WrongExpression Expr | UnboundVariable Ident | UnsupportedType Type
+
+instance Show TypeError where
+    show t = case t of
+        Undefined e -> "Undefined expression: " ++ render $ prt 0 e
+        TypeError e t1 t2 -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in: " ++ render $ prt 0 e
+        WrongExpression e -> "Wrong expression: " ++ render $ prt 0 e
+        UnboundVariable (Ident id) -> "Unbound variable " ++ id ++ " in " ++ render $ prt 0 e
+        UnsupportedType t -> "Unsupported type: " + render $ prt 0 t
+
+data ArrOp = Union | Prod | Fun deriving Eq
+
+instance Show ArrOp where
+    show x = case x of
+        Union -> "+"
+        Prod -> "*"
+        Fun -> "->"
 
 newtype TVar = TV Int
 
-data TAlg = TCon TBasic | TArr ArrOp TAlg TAlg | TVar TVar deriving Show
+data TAlg = TCon TBasic | TArr TAlg ArrOp TAlg | TVar TVar 
 
-type Subst = Map TVar TAlg
+instance Show TAlg where
+    show t = case t of
+        TCon b -> show b
+        TArr t1 o t2 -> "(" ++ show t1 ++ ")" ++ show o ++ "(" ++ show t2 ++ ")"
+        TVar (TV n)-> "#" ++ show n
 
-type TCM s a = StateT s (Either String) a
+type Env = Map Ident TVar
 
-type Result = TCM Int Subst
+type Constraint = (TAlg, TAlg)
 
-newtype IState = IState {count :: Int, subst :: Subst, idmap :: Map Ident TVar}
+type Infer a = RWST Env [Constraint] Int (Except TypeError) a
 
-failure :: Show a => a -> TCM b
-failure x = lift $ Left $ show x
-
-undef :: Show a => a -> TCM b
-undef x = lift $ Left $ "Undefined case: " ++ show x
-
-class Substitutable a where
-  apply :: Subst -> a -> a
-  ftv   :: a -> Set TAlg
-
-instance Substitutable TAlg where
-  apply _ (TCon a) = TCon a
-  apply s t@(TVar a) = Map.findWithDefault t a s
-  apply s (TArr o t1 t2) = TArr o (apply s t1) (apply s t2)
-
-  ftv TCon = Set.empty
-  ftv (TVar a) = Set.singleton a
-  ftv (TArr _ t1 t2) = Set.union (ftv t1)  (ftv t2)
-
-compose :: Subst -> Subst -> Subst
-compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
-
-unify :: TAlg -> TAlg -> Result
-unify a@(TArr o l r) b@(TArr o' l' r') = 
-    if o == o' then do
-        s1 <- unify l l'
-        s2 <- unify (apply s1 r) (apply s1 r')
-        return (compose s2 s1)
-    else 
-        failure $ "Cannot unify " ++ show a ++ " and " ++ show b
-unify (TVar a) t = bind a t
-unify t (TVar a) = bind a t
-unify (TCon a) (TCon b) | a == b = return nullSubst
-unify t1 t2 = failure $ "Cannot unify " ++ show t1 ++ " and " ++ show t2
-
-bind ::  TVar -> TAlg -> Result
-bind a t | t == TVar a     = return nullSubst
-         | occursCheck a t = failure $ "Infinite type: " ++ show a ++ " = " ++ show t
-         | otherwise       = return $ Map.singleton a t
-
-occursCheck ::  Substitutable a => TVar -> a -> Bool
-occursCheck a t = a `Set.member` ftv t
-
-fresh :: TCM IState TAlg
+fresh :: Infer TAlg
 fresh = do
-  s <- get
-  put $ s{count = count s + 1}
-  return $ TVar $ TV $ count s
-
-putSubst :: TAlg -> TCM IState TAlg
-putSubst e = do
-   v <- fresh
-   s <- get
-   put $ s{subst = Map.insert v e (subst s)}
-   return $ TCon v
-
-typeExpr :: Expr -> TCM IState TAlg
-typeExpr x = case x of
-  EInt _ -> return $ TCon TInt
-  EChar char -> return $ TCon TChar
-  EString string -> undef x
-  EIdent ident -> do
     s <- get
-    case Map.lookup ident (idmap s) of
+    put $ s + 1
+    return $ TVar $ TV $ s
+
+withVal :: Ident -> TAlg -> Infer a -> Infer a
+withVal id t e = do
+    let nenv env = Map.insert id e (Map.delete id env)
+    local nenv e
+
+getEnv :: Env -> Indent -> Infer TAlg
+getEnv env id = do
+    case Map.lookup id env of
         Just v -> return $ TVar v
-        Nothing -> do
-            v <- fresh
-            return $ TVar v
-  ETrue -> return $ TCon TBool
-  EFalse -> return $ TCon TBool
-  EVoid -> return $ TCon TVoid
-  EEmpty -> undef x
-  ENot expr -> do
-    e <- typeExpr expr
-    return $ putSubst e --TODO not sure
-  ETuple expr exprs -> do
-    e1 <- typeExpr expr
-    e2 <- case exprs of
-        [expr2] -> typeExpr expr2
-        expr2:xs -> typeExpr $ ETuple expr2 xs
-        [] -> failure $ "One element in tuple: " ++ show x
-    return $ putSubst $ TArr Prod e1 e2
-  EList exprs -> undef x
-  --TODO from here
-  ELambda idents expr -> do
-    s <- get
-    case idents of
-        [ident] -> lift $ Right $ VFun (\v -> evalStateT (compExpr expr) (Map.insert ident v s))
-        ident:rest -> lift $ Right $ VFun (\v -> evalStateT (compExpr (ELambda rest expr)) (Map.insert ident v s))
-        [] -> lift $ Left $ "Zero parameter lambda" ++ show x
+        Nothing -> lift $ throw $ UnboundVariable id
 
-  EApp expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case e1 of
-        VFun f -> lift $ f e2
-        _ -> lift $ Left $ "Not function: " ++ show e1 ++ "\n" ++ show x
-  EMul expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 * i2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1, e2) ++ "\n" ++ show x
-  EDiv expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> if i2 /= 0 then lift $ Right $ VInt $ div i1 i2 else lift $ Left $ "Division by 0" ++ show x
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1, e2) ++ "\n" ++ show x
-  EAdd expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 + i2 
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  ESub expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 - i2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EConcat expr1 expr2 -> failure x
-  ENeg expr -> do
-    e <- compExpr expr
-    case e of
-        VInt i -> lift $ Right $ VInt (-i)
-        _ -> lift $ Left $ "Not integer value: " ++ show e ++ "\n" ++ show x
-  ERel expr1 relop expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VBool (case compRelOp relop of
-            ">" -> i1 > i2
-            "<" -> i1 < i2
-            "<=" -> i1 <= i2
-            ">=" -> i1 >= i2
-            "==" -> i1 == i2
-            "!=" -> i1 /= i2 )
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EAnd expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VBool b1, VBool b2) -> lift $ Right $ VBool $ b1 && b2
-        _ -> lift $ Left $ "Not boolean value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EOr expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VBool b1, VBool b2) -> lift $ Right $ VBool $ b1 || b2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EAppend expr1 expr2 -> failure x
-  EUnion expr1 expr2 -> failure x
-  EIf expr1 expr2 expr3 -> do
-    e1 <- compExpr expr1
-    case e1 of
-        VBool i1 -> if i1 then compExpr expr2 else compExpr expr3
-        _ -> lift $ Left $ "Not boolean value: " ++ show e1 ++ "\n" ++ show x
-  ELet ident expr1 expr2 -> do --TODO recursion
-    e1 <- compExpr expr1
-    modify (Map.insert ident e1)
-    compExpr expr2
-  EType expr type_ -> failure x
+addCon :: TAlg -> TAlg -> Infer ()
+addCon a b = tell [(a,b)]
 
-compType :: Type -> Result
-compType x = case x of
-  TBasic basic -> failure x
-  TIdent ident -> failure x
-  TProduct type_1 type_2 -> failure x
-  TUnion type_1 type_2 -> failure x
-  TFun type_1 type_2 -> failure x
-  TList type_ -> failure x
+emptyUnion :: Int -> Infer TAlg
+emptyUnion n = do
+    v1 <- if n == 2 then fresh else emptyUnion $ n - 1
+    v2 <- fresh
+    return $ TArr v1 Union v2 
+
+inferExpr :: Expr -> Infer TAlg
+inferExpr x = case x of
+    EInt _ -> return $ TCon TInt
+    EChar char -> return $ TCon TChar
+    EString string -> lift $ throw $ Undefined x
+    EIdent ident -> getEnv ident
+    ETrue -> return $ TCon TBool
+    EFalse -> return $ TCon TBool
+    EVoid -> return $ TCon TVoid
+    EEmpty -> lift $ throw $ Undefined x
+    ENot expr -> do
+        t <- inferExpr expr
+        addCon t (TCon TBool)
+        return $ TCon TBool
+    ETuple expr exprs -> do
+        t1 <- inferExpr expr
+        t2 <- case exprs of
+            [expr2] -> inferExpr expr2
+            expr2:xs -> inferExpr $ ETuple expr2 xs
+            [] -> lift $ throw $ WrongExpression x
+        return $ TArr t1 Prod t2
+    EList exprs -> lift $ throw $ Undefined x
+    ELambda [] _ -> lift $ throw $ WrongExpression x
+    ELambda (id:rest) expr -> do
+        v <- fresh 
+        let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
+        t <- withVal id v e2
+        return $ TArr v Fun t
+    EApp expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        v <- fresh
+        addCon t1 (TArr t2 Fun v)
+        return v
+    EMul expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TInt)
+        addCon t2 (TCon TInt)
+        return $ TCon TInt
+    EDiv expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TInt)
+        addCon t2 (TCon TInt)
+        return $ TCon TInt
+    EAdd expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TInt)
+        addCon t2 (TCon TInt)
+        return $ TCon TInt
+    ESub expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TInt)
+        addCon t2 (TCon TInt)
+        return $ TCon TInt
+    EConcat expr1 expr2 -> lift $ throw $ Undefined x
+    ENeg expr -> do
+        t <- inferExpr expr
+        addCon t (TCon TInt)
+        return $ TCon TInt
+    ERel expr1 relop expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TInt)
+        addCon t2 (TCon TInt)
+        return $ TCon TBool
+    EAnd expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TBool)
+        addCon t2 (TCon TBool)
+        return $ TCon TBool
+    EOr expr1 expr2 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        addCon t1 (TCon TBool)
+        addCon t2 (TCon TBool)
+        return $ TCon TBool
+    EAppend expr1 expr2 -> lift $ throw $ Undefined x
+    EUnion (EInt n) expr2 | n <= 0 -> lift $ throw $ WrongExpression x
+                          | otherwise -> do
+        t1 <- if n > 2 then emptyUnion (n - 1) else fresh
+        t2 <- inferExpr expr2
+        return $ if n > 1 then TArr t1 Union t2 else TArr t2 Union t1
+    EUnion _ _ -> lift $ throw $ WrongExpression x
+    EIf expr1 expr2 expr3 -> do
+        t1 <- inferExpr expr1
+        t2 <- inferExpr expr2
+        t3 <- inferExpr expr3
+        addCon t1 (TCon TBool)
+        addCon t2 t3
+        return t3
+    ELet ident expr1 expr2 -> do 
+        t <- inferExpr expr1
+        --v <- fresh
+        --addCon v t1
+        withVal ident t (inferExpr expr2)
+    EType expr type_ -> do
+        t1 <- inferExpr expr
+        t2 <- inferType type_
+        addCon t1 t2
+        return t2
+
+inferType :: Type -> Infer TAlg
+inferType x = case x of
+    TBasic basic -> return $ TCon basic
+    TIdent ident -> lift $ throw $ UnsupportedType x
+    TProduct type_1 type_2 -> do
+        t1 <- inferType type_1
+        t2 <- inferType type_2
+        return $ TArr t1 Prod t2
+    TUnion type_1 type_2 -> do
+        t1 <- inferType type_1
+        t2 <- inferType type_2
+        return $ TArr t1 Union t2
+    TFun type_1 type_2 -> do
+        t1 <- inferType type_1
+        t2 <- inferType type_2
+        return $ TArr t1 Fun t2
+    TList type_ -> lift $ throw $ UnsupportedType x
+
+
+--class Substitutable a where
+--    apply :: Subst -> a -> a
+--    ftv   :: a -> Set TAlg
+--
+--instance Substitutable TAlg where
+--    apply _ (TCon a) = TCon a
+--    apply s t@(TVar a) = Map.findWithDefault t a s
+--    apply s (TArr o t1 t2) = TArr o (apply s t1) (apply s t2)
+--
+--    ftv TCon = Set.empty
+--    ftv (TVar a) = Set.singleton a
+--    ftv (TArr _ t1 t2) = Set.union (ftv t1)  (ftv t2)
+--
+--compose :: Subst -> Subst -> Subst
+--compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
+--
+--unify :: TAlg -> TAlg -> Result
+--unify a@(TArr o l r) b@(TArr o' l' r') = 
+--    if o == o' then do
+--        s1 <- unify l l'
+--        s2 <- unify (apply s1 r) (apply s1 r')
+--        return (compose s2 s1)
+--    else 
+--        failure $ "Cannot unify " ++ show a ++ " and " ++ show b
+--unify (TVar a) t = bind a t
+--unify t (TVar a) = bind a t
+--unify (TCon a) (TCon b) | a == b = return nullSubst
+--unify t1 t2 = failure $ "Cannot unify " ++ show t1 ++ " and " ++ show t2
+--
+--bind ::  TVar -> TAlg -> Result
+--bind a t | t == TVar a     = return nullSubst
+--         | occursCheck a t = failure $ "Infinite type: " ++ show a ++ " = " ++ show t
+--         | otherwise       = return $ Map.singleton a t
+--
+--occursCheck ::  Substitutable a => TVar -> a -> Bool
+--occursCheck a t = a `Set.member` ftv t
+
 
