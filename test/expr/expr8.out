@@ -1,10 +1,2 @@
 expr/expr8.in
-Error: Not integer value
-
-[Abstract Syntax]
-
-ELet (Ident "f") (ELambda [Ident "f",Ident "n"] (EIf (ERel (EIdent (Ident "n")) (RelOp ">") (EInt 1)) (EMul (EIdent (Ident "n")) (EApp (EIdent (Ident "f")) (ESub (EIdent (Ident "n")) (EInt 1)))) (EIdent (Ident "n")))) (EApp (EApp (EIdent (Ident "f")) (EIdent (Ident "f"))) (EInt 10))
-
-[Linearized tree]
-
-let f = (\ f n -> if n > 1 then n * f (n - 1) else n) in f f 10
+Type mismatch: [#0] and [(#0)->(#2)]

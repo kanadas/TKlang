@@ -7,8 +7,10 @@ import Control.Monad (when)
 import Data.Map (Map)
 import Control.Monad.Trans
 import Control.Monad.Trans.State
+import Control.Monad.Except
 import qualified Data.Map as Map
 
+import CheckTypes
 import LexGrammar
 import ParGrammar
 import ComputeGrammar
@@ -35,10 +37,13 @@ run v p s =
             --putStrV v $ show ts
             putStrLn s
             exitFailure
-        Ok tree -> do 
-            case evalStateT (compExpr tree) Map.empty of
-                Right v -> putStrLn (show v) >> exitSuccess
-                Left err -> putStrLn ("Error: " ++ err) >> showTree v tree >> exitFailure
+        Ok tree ->
+            case runExcept (solveExp tree) of
+                Left e -> putStrLn (show e) >> exitFailure
+                Right () ->
+                    case evalStateT (compExpr tree) Map.empty of
+                        Right v -> putStrLn (show v) >> exitSuccess
+                        Left err -> putStrLn ("Error: " ++ err) >> showTree v tree >> exitFailure
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree = do

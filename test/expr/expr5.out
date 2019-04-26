@@ -1,10 +1,2 @@
 expr/expr5.in
-Error: Undefined case: EString "Zero"
-
-[Abstract Syntax]
-
-EApp (EApp (ELambda [Ident "a",Ident "b"] (EIf (ERel (EAdd (EIdent (Ident "a")) (EIdent (Ident "b"))) (RelOp "==") (EInt 0)) (EString "Zero") (EAdd (EIdent (Ident "a")) (EIdent (Ident "b"))))) (EInt 0)) (EInt 0)
-
-[Linearized tree]
-
-(\ a b -> if a + b == 0 then "Zero" else a + b) 0 0
+Type mismatch: [bool] and [int]

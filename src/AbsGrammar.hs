@@ -57,7 +57,7 @@ data Type
     | TList Type
   deriving (Eq, Ord, Show, Read)
 
-data TBasic = TInt | TChar | TBool | TVoid
+data TBasic = TInt | TChar | TBool | TVoid deriving Eq
 
 instance Show TBasic where
     show t = case t of

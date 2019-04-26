@@ -13,15 +13,19 @@ import Control.Monad.Trans
 import Control.Monad.RWS
 import Control.Monad.Except
 
-data TypeError = Undefined Expr | TypeError Expr TAlg TAlg | WrongExpression Expr | UnboundVariable Ident | UnsupportedType Type
+throw :: TypeError -> Except TypeError a
+throw = throwError
+
+data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type
 
 instance Show TypeError where
-    show t = case t of
-        Undefined e -> "Undefined expression: " ++ render $ prt 0 e
-        TypeError e t1 t2 -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in: " ++ render $ prt 0 e
-        WrongExpression e -> "Wrong expression: " ++ render $ prt 0 e
-        UnboundVariable (Ident id) -> "Unbound variable " ++ id ++ " in " ++ render $ prt 0 e
-        UnsupportedType t -> "Unsupported type: " + render $ prt 0 t
+    show te = case te of
+        Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
+        TypeError t1 t2 -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2
+        WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e)
+        UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
+        NotConcreteType t -> "Not concrete type: " ++ show t
+        UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
 
 data ArrOp = Union | Prod | Fun deriving Eq
 
@@ -31,9 +35,9 @@ instance Show ArrOp where
         Prod -> "*"
         Fun -> "->"
 
-newtype TVar = TV Int
+newtype TVar = TV Integer deriving (Show, Eq, Ord)
 
-data TAlg = TCon TBasic | TArr TAlg ArrOp TAlg | TVar TVar 
+data TAlg = TCon TBasic | TArr TAlg ArrOp TAlg | TVar TVar  deriving Eq
 
 instance Show TAlg where
     show t = case t of
@@ -41,11 +45,11 @@ instance Show TAlg where
         TArr t1 o t2 -> "(" ++ show t1 ++ ")" ++ show o ++ "(" ++ show t2 ++ ")"
         TVar (TV n)-> "#" ++ show n
 
-type Env = Map Ident TVar
+type Env = Map Ident TAlg
 
 type Constraint = (TAlg, TAlg)
 
-type Infer a = RWST Env [Constraint] Int (Except TypeError) a
+type Infer a = RWST Env [Constraint] Integer (Except TypeError) a
 
 fresh :: Infer TAlg
 fresh = do
@@ -54,20 +58,21 @@ fresh = do
     return $ TVar $ TV $ s
 
 withVal :: Ident -> TAlg -> Infer a -> Infer a
-withVal id t e = do
-    let nenv env = Map.insert id e (Map.delete id env)
+withVal ident t e = do
+    let nenv env = Map.insert ident t (Map.delete ident env)
     local nenv e
 
-getEnv :: Env -> Indent -> Infer TAlg
-getEnv env id = do
-    case Map.lookup id env of
-        Just v -> return $ TVar v
-        Nothing -> lift $ throw $ UnboundVariable id
+getEnv :: Ident -> Infer TAlg
+getEnv ident = do
+    env <- ask
+    case Map.lookup ident env of
+        Just v -> return v
+        Nothing -> lift $ throw $ UnboundVariable ident
 
 addCon :: TAlg -> TAlg -> Infer ()
 addCon a b = tell [(a,b)]
 
-emptyUnion :: Int -> Infer TAlg
+emptyUnion :: Integer -> Infer TAlg
 emptyUnion n = do
     v1 <- if n == 2 then fresh else emptyUnion $ n - 1
     v2 <- fresh
@@ -76,8 +81,8 @@ emptyUnion n = do
 inferExpr :: Expr -> Infer TAlg
 inferExpr x = case x of
     EInt _ -> return $ TCon TInt
-    EChar char -> return $ TCon TChar
-    EString string -> lift $ throw $ Undefined x
+    EChar _ -> return $ TCon TChar
+    EString _ -> lift $ throw $ Undefined x
     EIdent ident -> getEnv ident
     ETrue -> return $ TCon TBool
     EFalse -> return $ TCon TBool
@@ -96,10 +101,10 @@ inferExpr x = case x of
         return $ TArr t1 Prod t2
     EList exprs -> lift $ throw $ Undefined x
     ELambda [] _ -> lift $ throw $ WrongExpression x
-    ELambda (id:rest) expr -> do
+    ELambda (ident:rest) expr -> do
         v <- fresh 
         let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
-        t <- withVal id v e2
+        t <- withVal ident v e2
         return $ TArr v Fun t
     EApp expr1 expr2 -> do
         t1 <- inferExpr expr1
@@ -170,9 +175,9 @@ inferExpr x = case x of
         return t3
     ELet ident expr1 expr2 -> do 
         t <- inferExpr expr1
-        --v <- fresh
-        --addCon v t1
-        withVal ident t (inferExpr expr2)
+        v <- fresh
+        addCon v t
+        withVal ident v (inferExpr expr2)
     EType expr type_ -> do
         t1 <- inferExpr expr
         t2 <- inferType type_
@@ -181,7 +186,7 @@ inferExpr x = case x of
 
 inferType :: Type -> Infer TAlg
 inferType x = case x of
-    TBasic basic -> return $ TCon basic
+    TBasic basic -> return $ TCon $ matchBasic basic
     TIdent ident -> lift $ throw $ UnsupportedType x
     TProduct type_1 type_2 -> do
         t1 <- inferType type_1
@@ -197,42 +202,63 @@ inferType x = case x of
         return $ TArr t1 Fun t2
     TList type_ -> lift $ throw $ UnsupportedType x
 
+type Subst = Map TVar TAlg
 
---class Substitutable a where
---    apply :: Subst -> a -> a
---    ftv   :: a -> Set TAlg
---
---instance Substitutable TAlg where
---    apply _ (TCon a) = TCon a
---    apply s t@(TVar a) = Map.findWithDefault t a s
---    apply s (TArr o t1 t2) = TArr o (apply s t1) (apply s t2)
---
---    ftv TCon = Set.empty
---    ftv (TVar a) = Set.singleton a
---    ftv (TArr _ t1 t2) = Set.union (ftv t1)  (ftv t2)
---
---compose :: Subst -> Subst -> Subst
---compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
---
---unify :: TAlg -> TAlg -> Result
---unify a@(TArr o l r) b@(TArr o' l' r') = 
---    if o == o' then do
---        s1 <- unify l l'
---        s2 <- unify (apply s1 r) (apply s1 r')
---        return (compose s2 s1)
---    else 
---        failure $ "Cannot unify " ++ show a ++ " and " ++ show b
---unify (TVar a) t = bind a t
---unify t (TVar a) = bind a t
---unify (TCon a) (TCon b) | a == b = return nullSubst
---unify t1 t2 = failure $ "Cannot unify " ++ show t1 ++ " and " ++ show t2
---
---bind ::  TVar -> TAlg -> Result
---bind a t | t == TVar a     = return nullSubst
---         | occursCheck a t = failure $ "Infinite type: " ++ show a ++ " = " ++ show t
---         | otherwise       = return $ Map.singleton a t
---
---occursCheck ::  Substitutable a => TVar -> a -> Bool
---occursCheck a t = a `Set.member` ftv t
+type Solve a = Except TypeError a
 
+class Substitutable a where
+    apply :: Subst -> a -> a
+    ftv   :: a -> Set TVar
+
+instance Substitutable TAlg where
+    apply _ (TCon a) = TCon a
+    apply s t@(TVar a) = Map.findWithDefault t a s
+    apply s (TArr t1 o t2) = TArr (apply s t1) o (apply s t2)
+
+    ftv (TCon _) = Set.empty
+    ftv (TVar a) = Set.singleton a
+    ftv (TArr t1 _ t2) = Set.union (ftv t1)  (ftv t2)
+
+instance Substitutable a => Substitutable [a] where
+    apply = fmap . apply
+    ftv = foldr (Set.union . ftv) Set.empty
+
+--Assuming arguments doesn't have the same keys
+compose :: Subst -> Subst -> Subst
+compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
+
+unify :: TAlg -> TAlg -> Solve Subst
+unify (TArr l o r) (TArr l' o' r') | o == o' = unifyMany [l, r] [l', r'] 
+unify (TVar a) t = bind a t
+unify t (TVar a) = bind a t
+unify (TCon a) (TCon b) | a == b = return $ Map.empty
+unify t1 t2 = throw $ TypeError [t1] [t2]
+
+unifyMany :: [TAlg] -> [TAlg] -> Solve Subst
+unifyMany [] [] = return $ Map.empty
+unifyMany (t1 : r1) (t2 : r2) = do
+        s1 <- unify t1 t2
+        s2 <- unifyMany (apply s1 r1) (apply s1 r2)
+        return (compose s2 s1)
+unifyMany t1 t2 = throw $ TypeError t1 t2
+
+bind ::  TVar -> TAlg -> Solve Subst
+bind a t | t == TVar a     = return $ Map.empty
+         | occursCheck a t = throw $ TypeError [TVar a] [t]
+         | otherwise       = return $ Map.singleton a t
+
+occursCheck ::  Substitutable a => TVar -> a -> Bool
+occursCheck a t = a `Set.member` ftv t
+
+concreteType :: TAlg -> Bool
+concreteType t = case t of
+    TCon _ -> True
+    TArr t1 _ t2 -> concreteType t1 && concreteType t2
+    _ -> False
+
+solveExp :: Expr -> Except TypeError ()
+solveExp expr = do
+    (_, cons) <- evalRWST (inferExpr expr) Map.empty 0
+    sub <- unifyMany (map fst cons) (map snd cons)
+    foldM (\_ t -> if concreteType t then return () else throw $ NotConcreteType t) () sub
 

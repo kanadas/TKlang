@@ -1,1 +1,1 @@
-(\a b -> if a + b == /*tralalalaal*/0 then "Zero" else a + b) 0 'a'
+(\a b -> if a + b == /*tralalalaal*/0 then true else a + b) 0 'a'

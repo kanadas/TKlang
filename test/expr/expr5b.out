@@ -1,2 +1,2 @@
 expr/expr5b.in
-1
+Type mismatch: [bool] and [int]

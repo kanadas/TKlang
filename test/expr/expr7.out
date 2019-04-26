@@ -1,9 +1,9 @@
 expr/expr7.in
-Error: Undefined case: EType (ELambda [Ident "a"] (EIdent (Ident "a"))) (TFun (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))) (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))))
+Error: Undefined case: EType (ELambda [Ident {getIdent = "a"}] (EIdent (Ident {getIdent = "a"}))) (TFun (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))) (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))))
 
 [Abstract Syntax]
 
-EType (ELambda [Ident "a"] (EIdent (Ident "a"))) (TFun (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))) (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))))
+EType (ELambda [Ident {getIdent = "a"}] (EIdent (Ident {getIdent = "a"}))) (TFun (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))) (TProduct (TBasic (Basic "int")) (TBasic (Basic "int"))))
 
 [Linearized tree]
 
