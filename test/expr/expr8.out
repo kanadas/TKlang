@@ -1,4 +1,4 @@
 expr/expr8.in
-Type mismatch: [#0] and [(#0)->(#2)] in expression:
+
+Type mismatch: #0 and #0->#2 in expression:
 f f
-[EApp (EIdent (Ident {getIdent = "f"})) (EIdent (Ident {getIdent = "f"}))]

@@ -1,6 +1,5 @@
 --v0.1 just basic types, static typing
---TODO Type unions and products should be lists
---TODO Unions should be commpatible with longer ones with the same prefix
+--TODO Unions should be commpatible with longer (but not shorter) ones with the same prefix
 module CheckTypes(
      TypeError
     ,TAlg
@@ -27,29 +26,27 @@ instance Show TypeError where
     show te = case te of
         Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
         TypeError t1 t2 [] -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 
-        TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e) ++ "\n" ++ show e
+        TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e)
         WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) ++ "\n" ++ show e
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
         NotConcreteType t -> "Not concrete type: " ++ show t
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
 
-data ArrOp = Union | Prod | Fun deriving Eq
-
-instance Show ArrOp where
-    show x = case x of
-        Union -> "+"
-        Prod -> "*"
-        Fun -> "->"
-
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
 
-data TAlg = TCon TBasic | TArr TAlg ArrOp TAlg | TVar TVar  deriving Eq
+data TAlg = Con TBasic 
+        | Var TVar
+        | Prod [TAlg] 
+        | Union [TAlg]
+        | Fun TAlg TAlg deriving Eq
 
 instance Show TAlg where
-    show t = case t of
-        TCon b -> show b
-        TArr t1 o t2 -> "(" ++ show t1 ++ ")" ++ show o ++ "(" ++ show t2 ++ ")"
-        TVar (TV n)-> "#" ++ show n
+    show tt = case tt of
+        Con b -> show b
+        Var (TV n) -> "#" ++ show n
+        Prod l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "*") "" l) ++ ")"
+        Union l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "+") "" l) ++ ")"
+        Fun a b -> show a ++ "->" ++ show b
 
 type Env = Map Ident TAlg
 
@@ -61,7 +58,7 @@ fresh :: Infer TAlg
 fresh = do
     s <- get
     put $ s + 1
-    return $ TVar $ TV $ s
+    return $ Var $ TV $ s
 
 withVal :: Ident -> TAlg -> Infer a -> Infer a
 withVal ident t e = do
@@ -78,107 +75,114 @@ getEnv ident = do
 addCon :: Expr -> TAlg -> TAlg -> Infer ()
 addCon e a b = tell [(a,b,e)]
 
-emptyUnion :: Integer -> Infer TAlg
-emptyUnion n = do
-    v1 <- if n == 2 then fresh else emptyUnion $ n - 1
-    v2 <- fresh
-    return $ TArr v1 Union v2 
+emptyUnion :: Integer -> Infer [TAlg]
+emptyUnion n
+    | n > 2 = do
+        v <- fresh
+        l <- emptyUnion (n-1)
+        return $ (v:l)
+    | n == 2 = do
+        v1 <- fresh
+        v2 <- fresh
+        return $ [v1, v2]
 
 inferExpr :: Expr -> Infer TAlg
 inferExpr x = case x of
-    EInt _ -> return $ TCon TInt
-    EChar _ -> return $ TCon TChar
+    EInt _ -> return $ Con TInt
+    EChar _ -> return $ Con TChar
     EString _ -> lift $ throw $ Undefined x
     EIdent ident -> getEnv ident
-    ETrue -> return $ TCon TBool
-    EFalse -> return $ TCon TBool
-    EVoid -> return $ TCon TVoid
+    ETrue -> return $ Con TBool
+    EFalse -> return $ Con TBool
+    EVoid -> return $ Con TVoid
     EEmpty -> lift $ throw $ Undefined x
     ENot expr -> do
         t <- inferExpr expr
-        addCon x t (TCon TBool)
-        return $ TCon TBool
+        addCon x t (Con TBool)
+        return $ Con TBool
+    ETuple _ [] -> lift $ throw $ WrongExpression x 
     ETuple expr exprs -> do
-        t1 <- inferExpr expr
-        t2 <- case exprs of
-            [expr2] -> inferExpr expr2
-            expr2:xs -> inferExpr $ ETuple expr2 xs
-            [] -> lift $ throw $ WrongExpression x
-        return $ TArr t1 Prod t2
+        l <- sequence $ map inferExpr (expr:exprs)
+        return $ Prod l
     EList exprs -> lift $ throw $ Undefined x
     ELambda [] _ -> lift $ throw $ WrongExpression x
     ELambda (ident:rest) expr -> do
         v <- fresh 
         let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
         t <- withVal ident v e2
-        return $ TArr v Fun t
+        return $ Fun v t
     EApp expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
         v <- fresh
-        addCon x t1 (TArr t2 Fun v)
+        addCon x t1 (Fun t2 v)
         return v
     EMul expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TInt)
-        addCon x t2 (TCon TInt)
-        return $ TCon TInt
+        addCon x t1 (Con TInt)
+        addCon x t2 (Con TInt)
+        return $ Con TInt
     EDiv expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TInt)
-        addCon x t2 (TCon TInt)
-        return $ TCon TInt
+        addCon x t1 (Con TInt)
+        addCon x t2 (Con TInt)
+        return $ Con TInt
     EAdd expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TInt)
-        addCon x t2 (TCon TInt)
-        return $ TCon TInt
+        addCon x t1 (Con TInt)
+        addCon x t2 (Con TInt)
+        return $ Con TInt
     ESub expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TInt)
-        addCon x t2 (TCon TInt)
-        return $ TCon TInt
+        addCon x t1 (Con TInt)
+        addCon x t2 (Con TInt)
+        return $ Con TInt
     EConcat expr1 expr2 -> lift $ throw $ Undefined x
     ENeg expr -> do
         t <- inferExpr expr
-        addCon x t (TCon TInt)
-        return $ TCon TInt
+        addCon x t (Con TInt)
+        return $ Con TInt
     ERel expr1 relop expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
         if relop /= eq then
-            addCon x t1 (TCon TInt) >>
-            addCon x t2 (TCon TInt)
+            addCon x t1 (Con TInt) >>
+            addCon x t2 (Con TInt)
         else addCon x t1 t2
-        return $ TCon TBool
+        return $ Con TBool
     EAnd expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TBool)
-        addCon x t2 (TCon TBool)
-        return $ TCon TBool
+        addCon x t1 (Con TBool)
+        addCon x t2 (Con TBool)
+        return $ Con TBool
     EOr expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon x t1 (TCon TBool)
-        addCon x t2 (TCon TBool)
-        return $ TCon TBool
+        addCon x t1 (Con TBool)
+        addCon x t2 (Con TBool)
+        return $ Con TBool
     EAppend expr1 expr2 -> lift $ throw $ Undefined x
-    EUnion (EInt n) expr2 | n <= 0 -> lift $ throw $ WrongExpression x
-                          | otherwise -> do
-        t1 <- if n > 2 then emptyUnion (n - 1) else fresh
-        t2 <- inferExpr expr2
-        return $ if n > 1 then TArr t1 Union t2 else TArr t2 Union t1
+    EUnion (EInt n) expr2 
+        | n <= 0 -> lift $ throw $ WrongExpression x
+        | n > 2 -> do
+            l <- emptyUnion (n - 1)
+            t <- inferExpr expr2
+            return $ Union (l ++ [t]) 
+        | otherwise -> do
+            t1 <- inferExpr expr2
+            t2 <- fresh
+            if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
     EUnion _ _ -> lift $ throw $ WrongExpression x
     EIf expr1 expr2 expr3 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
         t3 <- inferExpr expr3
-        addCon x t1 (TCon TBool)
+        addCon x t1 (Con TBool)
         addCon x t2 t3
         return t3
     ELet ident expr1 expr2 -> do 
@@ -192,22 +196,27 @@ inferExpr x = case x of
         addCon x t1 t2
         return t2
 
+--Assuming parsing is left-recursive
 inferType :: Type -> Infer TAlg
 inferType x = case x of
-    TBasic basic -> return $ TCon $ matchBasic basic
+    TBasic basic -> return $ Con $ matchBasic basic
     TIdent ident -> lift $ throw $ UnsupportedType x
-    TProduct type_1 type_2 -> do
+    TProduct type_1 type_2 -> do 
         t1 <- inferType type_1
         t2 <- inferType type_2
-        return $ TArr t1 Prod t2
+        case t1 of
+            Prod l -> return $ Prod $ l ++ [t2]
+            _ -> return $ Prod [t1, t2]
     TUnion type_1 type_2 -> do
         t1 <- inferType type_1
         t2 <- inferType type_2
-        return $ TArr t1 Union t2
+        case t1 of
+            Union l -> return $ Union $ l ++ [t1]
+            _ -> return $ Union [t1, t2]
     TFun type_1 type_2 -> do
         t1 <- inferType type_1
         t2 <- inferType type_2
-        return $ TArr t1 Fun t2
+        return $ Fun t1 t2
     TList type_ -> lift $ throw $ UnsupportedType x
 
 type Subst = Map TVar TAlg
@@ -219,13 +228,17 @@ class Substitutable a where
     ftv   :: a -> Set TVar
 
 instance Substitutable TAlg where
-    apply _ (TCon a) = TCon a
-    apply s t@(TVar a) = Map.findWithDefault t a s
-    apply s (TArr t1 o t2) = TArr (apply s t1) o (apply s t2)
+    apply _ (Con a) = Con a
+    apply s t@(Var a) = Map.findWithDefault t a s
+    apply s (Prod l) = Prod $ apply s l
+    apply s (Union l) = Union $ apply s l
+    apply s (Fun t1 t2) = Fun (apply s t1) (apply s t2)
 
-    ftv (TCon _) = Set.empty
-    ftv (TVar a) = Set.singleton a
-    ftv (TArr t1 _ t2) = Set.union (ftv t1)  (ftv t2)
+    ftv (Con _) = Set.empty
+    ftv (Var a) = Set.singleton a
+    ftv (Prod l) = ftv l
+    ftv (Union l) = ftv l
+    ftv (Fun t1 t2) = Set.union (ftv t1) (ftv t2)
 
 instance Substitutable a => Substitutable [a] where
     apply = fmap . apply
@@ -236,10 +249,12 @@ compose :: Subst -> Subst -> Subst
 compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
 
 unify :: TAlg -> TAlg -> Expr -> Solve Subst
-unify (TArr l o r) (TArr l' o' r') e | o == o' = unifyMany [l, r] [l', r'] [e, e]
-unify (TVar a) t e = bind a t e
-unify t (TVar a) e = bind a t e
-unify (TCon a) (TCon b) _ | a == b = return $ Map.empty
+unify (Prod l1) (Prod l2) e = unifyMany l1 l2 (replicate (length l2) e) 
+unify (Union l1) (Union l2) e = unifyMany l1 l2 (replicate (length l2) e)
+unify (Fun l1 r1) (Fun l2 r2) e = unifyMany [l1, r1] [l2, r2] [e, e]
+unify (Var a) t e = bind a t e
+unify t (Var a) e = bind a t e
+unify (Con a) (Con b) _ | a == b = return $ Map.empty
 unify t1 t2 e = throw $ TypeError [t1] [t2] [e]
 
 unifyMany :: [TAlg] -> [TAlg] -> [Expr] -> Solve Subst
@@ -251,17 +266,19 @@ unifyMany (t1 : r1) (t2 : r2) (e : et) = do
 unifyMany t1 t2 e = throw $ TypeError t1 t2 e
 
 bind ::  TVar -> TAlg -> Expr -> Solve Subst
-bind a t e | t == TVar a     = return $ Map.empty
-           | occursCheck a t = throw $ TypeError [TVar a] [t] [e]
+bind a t e | t == Var a     = return $ Map.empty
+           | occursCheck a t = throw $ TypeError [Var a] [t] [e]
            | otherwise       = return $ Map.singleton a t
 
 occursCheck ::  Substitutable a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 concreteType :: TAlg -> Bool
-concreteType t = case t of
-    TCon _ -> True
-    TArr t1 _ t2 -> concreteType t1 && concreteType t2
+concreteType tt = case tt of
+    Con _ -> True
+    Prod l -> foldl (\v t -> v && concreteType t) True l
+    Union l -> foldl (\v t -> v && concreteType t) True l
+    Fun t1 t2 -> concreteType t1 && concreteType t2
     _ -> False
 
 solveExp :: Expr -> Except TypeError ()
