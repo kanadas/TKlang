@@ -1,6 +1,11 @@
 --v0.1 just basic types, static typing
 --TODO Type unions and products should be lists
-module CheckTypes where
+--TODO Unions should be commpatible with longer ones with the same prefix
+module CheckTypes(
+     TypeError
+    ,TAlg
+    ,solveExp
+    ) where
 
 import AbsGrammar
 import PrintGrammar
@@ -16,13 +21,14 @@ import Control.Monad.Except
 throw :: TypeError -> Except TypeError a
 throw = throwError
 
-data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type
+data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] [Expr] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type
 
 instance Show TypeError where
     show te = case te of
         Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
-        TypeError t1 t2 -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2
-        WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e)
+        TypeError t1 t2 [] -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 
+        TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e) ++ "\n" ++ show e
+        WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) ++ "\n" ++ show e
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
         NotConcreteType t -> "Not concrete type: " ++ show t
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
@@ -47,7 +53,7 @@ instance Show TAlg where
 
 type Env = Map Ident TAlg
 
-type Constraint = (TAlg, TAlg)
+type Constraint = (TAlg, TAlg, Expr) --To debug
 
 type Infer a = RWST Env [Constraint] Integer (Except TypeError) a
 
@@ -69,8 +75,8 @@ getEnv ident = do
         Just v -> return v
         Nothing -> lift $ throw $ UnboundVariable ident
 
-addCon :: TAlg -> TAlg -> Infer ()
-addCon a b = tell [(a,b)]
+addCon :: Expr -> TAlg -> TAlg -> Infer ()
+addCon e a b = tell [(a,b,e)]
 
 emptyUnion :: Integer -> Infer TAlg
 emptyUnion n = do
@@ -90,7 +96,7 @@ inferExpr x = case x of
     EEmpty -> lift $ throw $ Undefined x
     ENot expr -> do
         t <- inferExpr expr
-        addCon t (TCon TBool)
+        addCon x t (TCon TBool)
         return $ TCon TBool
     ETuple expr exprs -> do
         t1 <- inferExpr expr
@@ -110,54 +116,56 @@ inferExpr x = case x of
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
         v <- fresh
-        addCon t1 (TArr t2 Fun v)
+        addCon x t1 (TArr t2 Fun v)
         return v
     EMul expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TInt)
-        addCon t2 (TCon TInt)
+        addCon x t1 (TCon TInt)
+        addCon x t2 (TCon TInt)
         return $ TCon TInt
     EDiv expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TInt)
-        addCon t2 (TCon TInt)
+        addCon x t1 (TCon TInt)
+        addCon x t2 (TCon TInt)
         return $ TCon TInt
     EAdd expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TInt)
-        addCon t2 (TCon TInt)
+        addCon x t1 (TCon TInt)
+        addCon x t2 (TCon TInt)
         return $ TCon TInt
     ESub expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TInt)
-        addCon t2 (TCon TInt)
+        addCon x t1 (TCon TInt)
+        addCon x t2 (TCon TInt)
         return $ TCon TInt
     EConcat expr1 expr2 -> lift $ throw $ Undefined x
     ENeg expr -> do
         t <- inferExpr expr
-        addCon t (TCon TInt)
+        addCon x t (TCon TInt)
         return $ TCon TInt
     ERel expr1 relop expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TInt)
-        addCon t2 (TCon TInt)
+        if relop /= eq then
+            addCon x t1 (TCon TInt) >>
+            addCon x t2 (TCon TInt)
+        else addCon x t1 t2
         return $ TCon TBool
     EAnd expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TBool)
-        addCon t2 (TCon TBool)
+        addCon x t1 (TCon TBool)
+        addCon x t2 (TCon TBool)
         return $ TCon TBool
     EOr expr1 expr2 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
-        addCon t1 (TCon TBool)
-        addCon t2 (TCon TBool)
+        addCon x t1 (TCon TBool)
+        addCon x t2 (TCon TBool)
         return $ TCon TBool
     EAppend expr1 expr2 -> lift $ throw $ Undefined x
     EUnion (EInt n) expr2 | n <= 0 -> lift $ throw $ WrongExpression x
@@ -170,18 +178,18 @@ inferExpr x = case x of
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
         t3 <- inferExpr expr3
-        addCon t1 (TCon TBool)
-        addCon t2 t3
+        addCon x t1 (TCon TBool)
+        addCon x t2 t3
         return t3
     ELet ident expr1 expr2 -> do 
         t <- inferExpr expr1
         v <- fresh
-        addCon v t
+        addCon x v t
         withVal ident v (inferExpr expr2)
     EType expr type_ -> do
         t1 <- inferExpr expr
         t2 <- inferType type_
-        addCon t1 t2
+        addCon x t1 t2
         return t2
 
 inferType :: Type -> Infer TAlg
@@ -227,25 +235,25 @@ instance Substitutable a => Substitutable [a] where
 compose :: Subst -> Subst -> Subst
 compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
 
-unify :: TAlg -> TAlg -> Solve Subst
-unify (TArr l o r) (TArr l' o' r') | o == o' = unifyMany [l, r] [l', r'] 
-unify (TVar a) t = bind a t
-unify t (TVar a) = bind a t
-unify (TCon a) (TCon b) | a == b = return $ Map.empty
-unify t1 t2 = throw $ TypeError [t1] [t2]
+unify :: TAlg -> TAlg -> Expr -> Solve Subst
+unify (TArr l o r) (TArr l' o' r') e | o == o' = unifyMany [l, r] [l', r'] [e, e]
+unify (TVar a) t e = bind a t e
+unify t (TVar a) e = bind a t e
+unify (TCon a) (TCon b) _ | a == b = return $ Map.empty
+unify t1 t2 e = throw $ TypeError [t1] [t2] [e]
 
-unifyMany :: [TAlg] -> [TAlg] -> Solve Subst
-unifyMany [] [] = return $ Map.empty
-unifyMany (t1 : r1) (t2 : r2) = do
-        s1 <- unify t1 t2
-        s2 <- unifyMany (apply s1 r1) (apply s1 r2)
-        return (compose s2 s1)
-unifyMany t1 t2 = throw $ TypeError t1 t2
+unifyMany :: [TAlg] -> [TAlg] -> [Expr] -> Solve Subst
+unifyMany [] [] _ = return $ Map.empty
+unifyMany (t1 : r1) (t2 : r2) (e : et) = do
+    s1 <- unify t1 t2 e
+    s2 <- unifyMany (apply s1 r1) (apply s1 r2) et
+    return (compose s2 s1)
+unifyMany t1 t2 e = throw $ TypeError t1 t2 e
 
-bind ::  TVar -> TAlg -> Solve Subst
-bind a t | t == TVar a     = return $ Map.empty
-         | occursCheck a t = throw $ TypeError [TVar a] [t]
-         | otherwise       = return $ Map.singleton a t
+bind ::  TVar -> TAlg -> Expr -> Solve Subst
+bind a t e | t == TVar a     = return $ Map.empty
+           | occursCheck a t = throw $ TypeError [TVar a] [t] [e]
+           | otherwise       = return $ Map.singleton a t
 
 occursCheck ::  Substitutable a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
@@ -259,6 +267,6 @@ concreteType t = case t of
 solveExp :: Expr -> Except TypeError ()
 solveExp expr = do
     (_, cons) <- evalRWST (inferExpr expr) Map.empty 0
-    sub <- unifyMany (map fst cons) (map snd cons)
+    sub <- unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)
     foldM (\_ t -> if concreteType t then return () else throw $ NotConcreteType t) () sub
 

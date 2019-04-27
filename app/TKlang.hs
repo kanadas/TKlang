@@ -41,9 +41,9 @@ run v p s =
             case runExcept (solveExp tree) of
                 Left e -> putStrLn (show e) >> exitFailure
                 Right () ->
-                    case evalStateT (compExpr tree) Map.empty of
+                    case runComp $ evalStateT (compExpr tree) Map.empty of
                         Right v -> putStrLn (show v) >> exitSuccess
-                        Left err -> putStrLn ("Error: " ++ err) >> showTree v tree >> exitFailure
+                        Left err -> putStrLn ("Error: " ++ (show err)) >> showTree v tree >> exitFailure
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree = do

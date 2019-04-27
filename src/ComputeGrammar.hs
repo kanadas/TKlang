@@ -3,28 +3,74 @@
 module ComputeGrammar where
 
 import AbsGrammar
+import PrintGrammar
 --import Data.Maybe
 import Data.Map (Map)
 import Control.Monad.Trans
 import Control.Monad.Trans.State
+import Control.Monad.Except
+import Control.Monad.Fail
 import qualified Data.Map as Map
 
-data Value = VInt Integer | VChar Char | VBool Bool | VVoid | VFun (Value -> Either String Value)
+
+data CompError = DivisionByZero Expr | Undefined Expr | Bug String
+
+instance Show CompError where
+    show ce = case ce of
+        DivisionByZero e -> "Division by zero in: " ++ (render $ prt 0 e)
+        Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
+        Bug s -> "!!!BUG!!!: " ++ s
+
+data CompExcept a = CompExcept {runComp :: Either CompError a}
+
+instance Monad CompExcept where
+    return a = CompExcept $ return a
+    (>>=) (CompExcept m) f = CompExcept $ m >>= runComp.f
+
+instance Functor CompExcept where
+  fmap = liftM
+
+instance Applicative CompExcept where
+  pure = return 
+  (<*>) = ap
+
+throw :: CompError -> CompExcept a
+throw = CompExcept . throwError
+
+instance MonadFail CompExcept where
+    fail s = throw $ Bug s
+
+data Value = VInt Integer 
+            | VChar Char 
+            | VBool Bool 
+            | VVoid 
+            | VFun (Value -> CompExcept Value)
+            | VTuple [Value]
+            | VUnion Integer Value
+
+instance Eq Value where
+    v1 == v2 = case (v1, v2) of
+        (VInt a, VInt b) -> a == b
+        (VChar a, VChar b) -> a == b
+        (VBool a, VBool b) -> a == b
+        (VVoid, VVoid) -> True
+        (VTuple a, VTuple b) -> a == b
+        (VUnion i1 a, VUnion i2 b) -> i1 == i2 && a == b
+        (_, _) -> False
 
 instance Show Value where
-    show v = case v of
+    show vv = case vv of
         VInt i -> show i
         VChar c -> show c
         VBool b -> show b
         VVoid -> "()"
         VFun _ -> "Function"
+        VTuple vl -> "(" ++ foldl (\s v -> s ++ show v ++ ", ") "" vl ++ ")"
+        VUnion n v -> show n ++ "@" ++ show v
 
 type Env = Map Ident Value
 
-type Result = StateT Env (Either String) Value
-
-failure :: Show a => a -> Result
-failure x = lift $ Left $ "Undefined case: " ++ show x
+type Result = StateT Env CompExcept Value
 
 compIdent :: Ident -> String
 compIdent x = case x of
@@ -38,111 +84,83 @@ compBasic x = case x of
 
 compExpr :: Expr -> Result
 compExpr x = case x of
-  EInt integer -> return $ VInt integer
-  EChar char -> return $ VChar char
-  EString string -> failure x
-  EIdent ident -> do
-    s <- get
-    case Map.lookup ident s of
-        Just v -> lift $ Right v
-        Nothing -> lift $ Left $ "Unknown identifier: " ++ compIdent ident ++ "\n" ++ show x
-  ETrue -> return $ VBool True
-  EFalse -> return $ VBool False
-  EVoid -> return $ VVoid
-  EEmpty -> failure x
-  ENot expr -> do
-    e <- compExpr expr
-    case e of
-        VBool b -> lift $ Right $ VBool $ not b
-        _ -> lift $ Left $ "Not boolean value: " ++ show e ++ "\n" ++ show x
-  ETuple expr exprs -> failure x
-  EList exprs -> failure x
-  ELambda idents expr -> do
-    s <- get
-    case idents of
-        [ident] -> lift $ Right $ VFun (\v -> evalStateT (compExpr expr) (Map.insert ident v s))
-        ident:rest -> lift $ Right $ VFun (\v -> evalStateT (compExpr (ELambda rest expr)) (Map.insert ident v s))
-        [] -> lift $ Left $ "Zero parameter lambda" ++ show x
-
-  EApp expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case e1 of
-        VFun f -> lift $ f e2
-        _ -> lift $ Left $ "Not function: " ++ show e1 ++ "\n" ++ show x
-  EMul expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 * i2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1, e2) ++ "\n" ++ show x
-  EDiv expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> if i2 /= 0 then lift $ Right $ VInt $ div i1 i2 else lift $ Left $ "Division by 0" ++ show x
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1, e2) ++ "\n" ++ show x
-  EAdd expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 + i2 
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  ESub expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VInt $ i1 - i2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EConcat expr1 expr2 -> failure x
-  ENeg expr -> do
-    e <- compExpr expr
-    case e of
-        VInt i -> lift $ Right $ VInt (-i)
-        _ -> lift $ Left $ "Not integer value: " ++ show e ++ "\n" ++ show x
-  ERel expr1 relop expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VInt i1, VInt i2) -> lift $ Right $ VBool (case compRelOp relop of
-            ">" -> i1 > i2
-            "<" -> i1 < i2
-            "<=" -> i1 <= i2
-            ">=" -> i1 >= i2
-            "==" -> i1 == i2
-            "!=" -> i1 /= i2 )
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EAnd expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VBool b1, VBool b2) -> lift $ Right $ VBool $ b1 && b2
-        _ -> lift $ Left $ "Not boolean value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EOr expr1 expr2 -> do
-    e1 <- compExpr expr1
-    e2 <- compExpr expr2
-    case (e1, e2) of
-        (VBool b1, VBool b2) -> lift $ Right $ VBool $ b1 || b2
-        _ -> lift $ Left $ "Not integer value: " ++ show (e1,e2) ++ "\n" ++ show x
-  EAppend expr1 expr2 -> failure x
-  EUnion expr1 expr2 -> failure x
-  EIf expr1 expr2 expr3 -> do
-    e1 <- compExpr expr1
-    case e1 of
-        VBool i1 -> if i1 then compExpr expr2 else compExpr expr3
-        _ -> lift $ Left $ "Not boolean value: " ++ show e1 ++ "\n" ++ show x
-  ELet ident expr1 expr2 -> do --TODO recursion
-    e1 <- compExpr expr1
-    modify (Map.insert ident e1)
-    compExpr expr2
-  EType expr type_ -> failure x
-
-compType :: Type -> Result
-compType x = case x of
-  TBasic basic -> failure x
-  TIdent ident -> failure x
-  TProduct type_1 type_2 -> failure x
-  TUnion type_1 type_2 -> failure x
-  TFun type_1 type_2 -> failure x
-  TList type_ -> failure x
+    EInt integer -> return $ VInt integer
+    EChar char -> return $ VChar char
+    EString string -> lift $ throw $ Undefined x
+    EIdent ident -> do
+        s <- get
+        return $ s Map.! ident
+    ETrue -> return $ VBool True
+    EFalse -> return $ VBool False
+    EVoid -> return $ VVoid
+    EEmpty -> lift $ throw $ Undefined x
+    ENot expr -> do
+        (VBool b) <- compExpr expr
+        return $ VBool $ not b
+    ETuple expr exprs -> VTuple <$> mapM compExpr (expr:exprs) 
+    EList exprs -> lift $ throw $ Undefined x
+    ELambda idents expr -> do
+        s <- get
+        case idents of
+            [ident] -> return $ VFun (\v -> evalStateT (compExpr expr) (Map.insert ident v s))
+            ident:rest -> return $ 
+                VFun (\v -> evalStateT (compExpr (ELambda rest expr)) (Map.insert ident v s))
+    EApp expr1 expr2 -> do
+        (VFun f) <- compExpr expr1
+        e2 <- compExpr expr2
+        lift $ f e2
+    EMul expr1 expr2 -> do
+        (VInt i1) <- compExpr expr1
+        (VInt i2) <- compExpr expr2
+        return $ VInt $ i1 * i2
+    EDiv expr1 expr2 -> do
+        (VInt i1) <- compExpr expr1
+        (VInt i2) <- compExpr expr2
+        if i2 /= 0 then return $ VInt $ div i1 i2 else lift $ throw $ DivisionByZero x
+    EAdd expr1 expr2 -> do
+        (VInt i1) <- compExpr expr1
+        (VInt i2) <- compExpr expr2
+        return $ VInt $ i1 + i2 
+    ESub expr1 expr2 -> do
+        (VInt i1) <- compExpr expr1
+        (VInt i2) <- compExpr expr2
+        return $ VInt $ i1 - i2
+    EConcat expr1 expr2 -> lift $ throw $ Undefined x
+    ENeg expr -> do
+        (VInt i) <- compExpr expr
+        return $ VInt (-i)
+    ERel expr1 (RelOp o) expr2 
+        | o `elem` ["==", "!="] -> do
+            e1 <- compExpr expr1
+            e2 <- compExpr expr2
+            if o == "==" then return $ VBool (e1 == e2) else return $ VBool (e1 /= e2)
+        | otherwise -> do
+            (VInt i1) <- compExpr expr1
+            (VInt i2) <- compExpr expr2
+            return $ VBool ( case o of
+                ">" -> i1 > i2
+                "<" -> i1 < i2
+                ">=" -> i1 <= i2
+                "<=" -> i1 >= i2 ) 
+    EAnd expr1 expr2 -> do
+        (VBool b1) <- compExpr expr1
+        (VBool b2) <- compExpr expr2
+        return $ VBool $ b1 && b2
+    EOr expr1 expr2 -> do
+        (VBool b1) <- compExpr expr1
+        (VBool b2) <- compExpr expr2
+        return $ VBool $ b1 || b2
+    EAppend expr1 expr2 -> lift $ throw $ Undefined x
+    EUnion expr1 expr2 -> do
+        (VInt i1) <- compExpr expr1
+        v2 <- compExpr expr2
+        return $ VUnion i1 v2
+    EIf expr1 expr2 expr3 -> do
+        (VBool b) <- compExpr expr1
+        if b then compExpr expr2 else compExpr expr3
+    ELet ident expr1 expr2 -> do --TODO recursion
+        e1 <- compExpr expr1
+        modify (Map.insert ident e1)
+        compExpr expr2
+    EType expr _ -> compExpr expr
 
