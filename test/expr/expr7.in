@@ -1,1 +1,1 @@
-(\a -> a) :: int * int -> int * int
+(\f x -> f (f x)) (\y -> y) 7

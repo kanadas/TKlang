@@ -1,0 +1,3 @@
+expr/union8.in
+Type mismatch: [] and [(char+int)] in expression:
+(\ a b -> if a + b == 0 then 1 @ 'a' else 2 @ a + b) :: int -> int -> char + int + bool

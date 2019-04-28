@@ -1,5 +1,6 @@
 --v0.1 just basic types, static typing
 --TODO Unions should be commpatible with longer (but not shorter) ones with the same prefix
+{-# LANGUAGE FlexibleContexts #-} --for fresh
 module CheckTypes(
      TypeError
     ,TAlg
@@ -16,9 +17,7 @@ import qualified Data.Set as Set
 import Control.Monad.Trans
 import Control.Monad.RWS
 import Control.Monad.Except
-
-throw :: TypeError -> Except TypeError a
-throw = throwError
+import Control.Monad.State
 
 data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] [Expr] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type
 
@@ -38,7 +37,9 @@ data TAlg = Con TBasic
         | Var TVar
         | Prod [TAlg] 
         | Union [TAlg]
-        | Fun TAlg TAlg deriving Eq
+        | Fun TAlg TAlg
+        | Rec TVar TAlg --TVar needs to be fresh
+        deriving Eq
 
 instance Show TAlg where
     show tt = case tt of
@@ -47,6 +48,7 @@ instance Show TAlg where
         Prod l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "*") "" l) ++ ")"
         Union l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "+") "" l) ++ ")"
         Fun a b -> show a ++ "->" ++ show b
+        Rec v t -> "(" ++ show v ++ "." ++ show t ++ ")"
 
 type Env = Map Ident TAlg
 
@@ -54,11 +56,15 @@ type Constraint = (TAlg, TAlg, Expr) --To debug
 
 type Infer a = RWST Env [Constraint] Integer (Except TypeError) a
 
-fresh :: Infer TAlg
-fresh = do
+freshV :: (MonadState Integer m) => m TVar
+freshV = do
     s <- get
     put $ s + 1
-    return $ Var $ TV $ s
+    return $ TV $ s
+
+--fresh :: Infer TAlg
+fresh :: (MonadState Integer m) => m TAlg
+fresh = Var <$> freshV 
 
 withVal :: Ident -> TAlg -> Infer a -> Infer a
 withVal ident t e = do
@@ -70,7 +76,7 @@ getEnv ident = do
     env <- ask
     case Map.lookup ident env of
         Just v -> return v
-        Nothing -> lift $ throw $ UnboundVariable ident
+        Nothing -> throwError $ UnboundVariable ident
 
 addCon :: Expr -> TAlg -> TAlg -> Infer ()
 addCon e a b = tell [(a,b,e)]
@@ -90,22 +96,22 @@ inferExpr :: Expr -> Infer TAlg
 inferExpr x = case x of
     EInt _ -> return $ Con TInt
     EChar _ -> return $ Con TChar
-    EString _ -> lift $ throw $ Undefined x
+    EString _ -> throwError $ Undefined x
     EIdent ident -> getEnv ident
     ETrue -> return $ Con TBool
     EFalse -> return $ Con TBool
     EVoid -> return $ Con TVoid
-    EEmpty -> lift $ throw $ Undefined x
+    EEmpty -> throwError $ Undefined x
     ENot expr -> do
         t <- inferExpr expr
         addCon x t (Con TBool)
         return $ Con TBool
-    ETuple _ [] -> lift $ throw $ WrongExpression x 
+    ETuple _ [] -> throwError $ WrongExpression x 
     ETuple expr exprs -> do
         l <- sequence $ map inferExpr (expr:exprs)
         return $ Prod l
-    EList exprs -> lift $ throw $ Undefined x
-    ELambda [] _ -> lift $ throw $ WrongExpression x
+    EList exprs -> throwError $ Undefined x
+    ELambda [] _ -> throwError $ WrongExpression x
     ELambda (ident:rest) expr -> do
         v <- fresh 
         let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
@@ -141,7 +147,7 @@ inferExpr x = case x of
         addCon x t1 (Con TInt)
         addCon x t2 (Con TInt)
         return $ Con TInt
-    EConcat expr1 expr2 -> lift $ throw $ Undefined x
+    EConcat expr1 expr2 -> throwError $ Undefined x
     ENeg expr -> do
         t <- inferExpr expr
         addCon x t (Con TInt)
@@ -166,9 +172,9 @@ inferExpr x = case x of
         addCon x t1 (Con TBool)
         addCon x t2 (Con TBool)
         return $ Con TBool
-    EAppend expr1 expr2 -> lift $ throw $ Undefined x
+    EAppend expr1 expr2 -> throwError $ Undefined x
     EUnion (EInt n) expr2 
-        | n <= 0 -> lift $ throw $ WrongExpression x
+        | n <= 0 -> throwError $ WrongExpression x
         | n > 2 -> do
             l <- emptyUnion (n - 1)
             t <- inferExpr expr2
@@ -177,7 +183,7 @@ inferExpr x = case x of
             t1 <- inferExpr expr2
             t2 <- fresh
             if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
-    EUnion _ _ -> lift $ throw $ WrongExpression x
+    EUnion _ _ -> throwError $ WrongExpression x
     EIf expr1 expr2 expr3 -> do
         t1 <- inferExpr expr1
         t2 <- inferExpr expr2
@@ -200,7 +206,7 @@ inferExpr x = case x of
 inferType :: Type -> Infer TAlg
 inferType x = case x of
     TBasic basic -> return $ Con $ matchBasic basic
-    TIdent ident -> lift $ throw $ UnsupportedType x
+    TIdent ident -> throwError $ UnsupportedType x
     TProduct type_1 type_2 -> do 
         t1 <- inferType type_1
         t2 <- inferType type_2
@@ -217,11 +223,11 @@ inferType x = case x of
         t1 <- inferType type_1
         t2 <- inferType type_2
         return $ Fun t1 t2
-    TList type_ -> lift $ throw $ UnsupportedType x
+    TList type_ -> throwError $ UnsupportedType x
 
 type Subst = Map TVar TAlg
 
-type Solve a = Except TypeError a
+type Solve a = StateT Integer (Except TypeError) a
 
 class Substitutable a where
     apply :: Subst -> a -> a
@@ -233,12 +239,14 @@ instance Substitutable TAlg where
     apply s (Prod l) = Prod $ apply s l
     apply s (Union l) = Union $ apply s l
     apply s (Fun t1 t2) = Fun (apply s t1) (apply s t2)
+    apply s (Rec x t) = Rec x (apply s t)
 
     ftv (Con _) = Set.empty
     ftv (Var a) = Set.singleton a
     ftv (Prod l) = ftv l
     ftv (Union l) = ftv l
     ftv (Fun t1 t2) = Set.union (ftv t1) (ftv t2)
+    ftv (Rec v t) = Set.delete v (ftv t)
 
 instance Substitutable a => Substitutable [a] where
     apply = fmap . apply
@@ -252,10 +260,14 @@ unify :: TAlg -> TAlg -> Expr -> Solve Subst
 unify (Prod l1) (Prod l2) e = unifyMany l1 l2 (replicate (length l2) e) 
 unify (Union l1) (Union l2) e = unifyMany l1 l2 (replicate (length l2) e)
 unify (Fun l1 r1) (Fun l2 r2) e = unifyMany [l1, r1] [l2, r2] [e, e]
-unify (Var a) t e = bind a t e
-unify t (Var a) e = bind a t e
+unify (Var a) t _ = bind a t
+unify t (Var a) _ = bind a t
 unify (Con a) (Con b) _ | a == b = return $ Map.empty
-unify t1 t2 e = throw $ TypeError [t1] [t2] [e]
+unify t1@(Rec _ _) t2@(Con _) e = throwError $ TypeError [t2] [t1] [e]
+unify (Rec v1 t1) (Rec v2 t2) e = unify t1 (apply (Map.singleton v2 (Var v1)) t2) e
+unify t1 t2@(Rec v t) e = unify t1 (apply (Map.singleton v t2) t) e
+unify t2@(Rec v t) t1 e = unify t1 (apply (Map.singleton v t2) t) e
+unify t1 t2 e = throwError $ TypeError [t1] [t2] [e]
 
 unifyMany :: [TAlg] -> [TAlg] -> [Expr] -> Solve Subst
 unifyMany [] [] _ = return $ Map.empty
@@ -263,27 +275,25 @@ unifyMany (t1 : r1) (t2 : r2) (e : et) = do
     s1 <- unify t1 t2 e
     s2 <- unifyMany (apply s1 r1) (apply s1 r2) et
     return (compose s2 s1)
-unifyMany t1 t2 e = throw $ TypeError t1 t2 e
+unifyMany t1 t2 e = throwError $ TypeError t1 t2 e
 
-bind ::  TVar -> TAlg -> Expr -> Solve Subst
-bind a t e | t == Var a     = return $ Map.empty
-           | occursCheck a t = throw $ TypeError [Var a] [t] [e]
-           | otherwise       = return $ Map.singleton a t
+bind :: TVar -> TAlg -> Solve Subst
+bind a t | t == Var a = return $ Map.empty
+         | occursCheck a t = do
+            v <- freshV
+            let nt = Rec v (apply (Map.singleton a (Var v)) t)
+            return $ Map.singleton a nt
+         | otherwise = return $ Map.singleton a t
 
 occursCheck ::  Substitutable a => TVar -> a -> Bool
 occursCheck a t = a `Set.member` ftv t
 
 concreteType :: TAlg -> Bool
-concreteType tt = case tt of
-    Con _ -> True
-    Prod l -> foldl (\v t -> v && concreteType t) True l
-    Union l -> foldl (\v t -> v && concreteType t) True l
-    Fun t1 t2 -> concreteType t1 && concreteType t2
-    _ -> False
+concreteType = Set.null . ftv
 
 solveExp :: Expr -> Except TypeError ()
 solveExp expr = do
-    (_, cons) <- evalRWST (inferExpr expr) Map.empty 0
-    sub <- unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)
-    foldM (\_ t -> if concreteType t then return () else throw $ NotConcreteType t) () sub
+    (s, cons) <- execRWST (inferExpr expr) Map.empty 0
+    sub <- evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
+    foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
 

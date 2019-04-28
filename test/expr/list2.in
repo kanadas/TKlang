@@ -1,0 +1,2 @@
+//void_list = void * char_list + void
+let repeat = (\n -> if n == 0 then 2@() else 1@((), repeat (n-1))) in repeat 5

@@ -1,2 +1,2 @@
-//silnia
-let f = (\f n -> if n > 1 then n * f f (n - 1) else n) in f f 10
+
+let f = (\n -> n * 2) in 10 * f (11 - 1)

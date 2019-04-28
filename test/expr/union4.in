@@ -1,0 +1,1 @@
+(\x -> if x == (1 @ 5) then 1 @ true else if x == (2 @ 'a') then 2 @ 1 else 1 @ false) (1 @ 5)

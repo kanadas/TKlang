@@ -1,0 +1,3 @@
+expr/union5.in
+Type mismatch: [(char+#2)] and [int] in expression:
+if a + b == 0 then 1 @ 'a' else a + b

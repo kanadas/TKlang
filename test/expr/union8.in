@@ -1,0 +1,3 @@
+//TODO propably should work
+((\a b -> if a + b == 0 then 1 @ 'a' else 2 @ a + b) :: int -> int -> char + int + bool) 1 2
+

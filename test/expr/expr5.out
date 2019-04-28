@@ -1,4 +1,3 @@
 expr/expr5.in
-
-Type mismatch: bool and int in expression:
+Type mismatch: [bool] and [int] in expression:
 if a + b == 0 then true else a + b
