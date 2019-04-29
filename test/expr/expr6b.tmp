@@ -1,0 +1,5 @@
+expr/expr6b.in
+
+Parse              Failed...
+
+syntax error at line 1, column 42 before `['

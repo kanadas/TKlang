@@ -19,7 +19,7 @@ import Control.Monad.RWS
 import Control.Monad.Except
 import Control.Monad.State
 
-data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] [Expr] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type
+data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] [Expr] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type | Bug String
 
 instance Show TypeError where
     show te = case te of
@@ -30,6 +30,7 @@ instance Show TypeError where
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
         NotConcreteType t -> "Not concrete type: " ++ show t
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
+        Bug s -> "!!!BUG!!! " ++ s
 
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
 
@@ -78,9 +79,6 @@ getEnv ident = do
         Just v -> return v
         Nothing -> throwError $ UnboundVariable ident
 
-addCon :: Expr -> TAlg -> TAlg -> Infer ()
-addCon e a b = tell [(a,b,e)]
-
 emptyUnion :: Integer -> Infer [TAlg]
 emptyUnion n
     | n > 2 = do
@@ -91,116 +89,141 @@ emptyUnion n
         v1 <- fresh
         v2 <- fresh
         return $ [v1, v2]
+    | otherwise = throwError $ Bug "union less than two types"
+
+listT :: TAlg -> Infer TAlg
+listT t = do
+    v <- freshV
+    return $ Rec v (Union [Prod [t, Var v], Con TVoid])
 
 inferExpr :: Expr -> Infer TAlg
-inferExpr x = case x of
-    EInt _ -> return $ Con TInt
-    EChar _ -> return $ Con TChar
-    EString _ -> throwError $ Undefined x
-    EIdent ident -> getEnv ident
-    ETrue -> return $ Con TBool
-    EFalse -> return $ Con TBool
-    EVoid -> return $ Con TVoid
-    EEmpty -> throwError $ Undefined x
-    ENot expr -> do
-        t <- inferExpr expr
-        addCon x t (Con TBool)
-        return $ Con TBool
-    ETuple _ [] -> throwError $ WrongExpression x 
-    ETuple expr exprs -> do
-        l <- sequence $ map inferExpr (expr:exprs)
-        return $ Prod l
-    EList exprs -> throwError $ Undefined x
-    ELambda [] _ -> throwError $ WrongExpression x
-    ELambda (ident:rest) expr -> do
-        v <- fresh 
-        let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
-        t <- withVal ident v e2
-        return $ Fun v t
-    EApp expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        v <- fresh
-        addCon x t1 (Fun t2 v)
-        return v
-    EMul expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TInt)
-        addCon x t2 (Con TInt)
-        return $ Con TInt
-    EDiv expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TInt)
-        addCon x t2 (Con TInt)
-        return $ Con TInt
-    EAdd expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TInt)
-        addCon x t2 (Con TInt)
-        return $ Con TInt
-    ESub expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TInt)
-        addCon x t2 (Con TInt)
-        return $ Con TInt
-    EConcat expr1 expr2 -> throwError $ Undefined x
-    ENeg expr -> do
-        t <- inferExpr expr
-        addCon x t (Con TInt)
-        return $ Con TInt
-    ERel expr1 relop expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        if relop /= eq then
-            addCon x t1 (Con TInt) >>
-            addCon x t2 (Con TInt)
-        else addCon x t1 t2
-        return $ Con TBool
-    EAnd expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TBool)
-        addCon x t2 (Con TBool)
-        return $ Con TBool
-    EOr expr1 expr2 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        addCon x t1 (Con TBool)
-        addCon x t2 (Con TBool)
-        return $ Con TBool
-    EAppend expr1 expr2 -> throwError $ Undefined x
-    EUnion (EInt n) expr2 
-        | n <= 0 -> throwError $ WrongExpression x
-        | n > 2 -> do
-            l <- emptyUnion (n - 1)
-            t <- inferExpr expr2
-            return $ Union (l ++ [t]) 
-        | otherwise -> do
-            t1 <- inferExpr expr2
-            t2 <- fresh
-            if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
-    EUnion _ _ -> throwError $ WrongExpression x
-    EIf expr1 expr2 expr3 -> do
-        t1 <- inferExpr expr1
-        t2 <- inferExpr expr2
-        t3 <- inferExpr expr3
-        addCon x t1 (Con TBool)
-        addCon x t2 t3
-        return t3
-    ELet ident expr1 expr2 -> do 
-        v <- fresh
-        t <- withVal ident v (inferExpr expr1)
-        addCon x v t
-        withVal ident v (inferExpr expr2)
-    EType expr type_ -> do
-        t1 <- inferExpr expr
-        t2 <- inferType type_
-        addCon x t1 t2
-        return t2
+inferExpr x = 
+    let addCon a b = tell [(a, b, x)] in
+    case x of
+        EInt _ -> return $ Con TInt
+        EChar _ -> return $ Con TChar
+        EString _ -> listT $ Con TChar
+        EIdent ident -> getEnv ident
+        ETrue -> return $ Con TBool
+        EFalse -> return $ Con TBool
+        EVoid -> return $ Con TVoid
+        EEmpty -> do
+            v <- fresh
+            listT v
+        ENot expr -> do
+            t <- inferExpr expr
+            addCon t (Con TBool)
+            return $ Con TBool
+        ETuple _ [] -> throwError $ WrongExpression x 
+        ETuple expr exprs -> do
+            l <- sequence $ map inferExpr (expr:exprs)
+            return $ Prod l
+        EList exprs -> do
+            v <- fresh
+            mapM_ ((addCon v) <=< inferExpr) exprs
+            listT v
+        ELambda [] _ -> throwError $ WrongExpression x
+        ELambda (ident:rest) expr -> do
+            v <- fresh 
+            let e2 = if rest == [] then inferExpr expr else inferExpr $ ELambda rest expr
+            t <- withVal ident v e2
+            return $ Fun v t
+        EApp expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            v <- fresh
+            addCon t1 (Fun t2 v)
+            return v
+        EMul expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TInt)
+            addCon t2 (Con TInt)
+            return $ Con TInt
+        EDiv expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TInt)
+            addCon t2 (Con TInt)
+            return $ Con TInt
+        EAdd expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TInt)
+            addCon t2 (Con TInt)
+            return $ Con TInt
+        ESub expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TInt)
+            addCon t2 (Con TInt)
+            return $ Con TInt
+        EConcat expr1 expr2 -> do
+            v <- fresh
+            l <- listT v
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon l t1
+            addCon l t2
+            return l
+        ENeg expr -> do
+            t <- inferExpr expr
+            addCon t (Con TInt)
+            return $ Con TInt
+        ERel expr1 relop expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            if relop /= eq then
+                addCon t1 (Con TInt) >>
+                addCon t2 (Con TInt)
+            else addCon t1 t2
+            return $ Con TBool
+        EAnd expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TBool)
+            addCon t2 (Con TBool)
+            return $ Con TBool
+        EOr expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            addCon t1 (Con TBool)
+            addCon t2 (Con TBool)
+            return $ Con TBool
+        EAppend expr1 expr2 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            l <- listT t1
+            addCon l t2
+            return $ l
+        EUnion (EInt n) expr2 
+            | n <= 0 -> throwError $ WrongExpression x
+            | n > 2 -> do
+                l <- emptyUnion (n - 1)
+                t <- inferExpr expr2
+                return $ Union (l ++ [t]) 
+            | otherwise -> do
+                t1 <- inferExpr expr2
+                t2 <- fresh
+                if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
+        EUnion _ _ -> throwError $ WrongExpression x
+        EIf expr1 expr2 expr3 -> do
+            t1 <- inferExpr expr1
+            t2 <- inferExpr expr2
+            t3 <- inferExpr expr3
+            addCon t1 (Con TBool)
+            addCon t2 t3
+            return t3
+        ELet ident expr1 expr2 -> do 
+            v <- fresh
+            t <- withVal ident v (inferExpr expr1)
+            addCon v t
+            withVal ident v (inferExpr expr2)
+        EType expr type_ -> do
+            t1 <- inferExpr expr
+            t2 <- inferType type_
+            addCon t1 t2
+            return t2
 
 --Assuming parsing is left-recursive
 inferType :: Type -> Infer TAlg
@@ -223,7 +246,7 @@ inferType x = case x of
         t1 <- inferType type_1
         t2 <- inferType type_2
         return $ Fun t1 t2
-    TList type_ -> throwError $ UnsupportedType x
+    TList type_ -> inferType type_ >>= listT
 
 type Subst = Map TVar TAlg
 

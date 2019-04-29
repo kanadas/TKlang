@@ -94,7 +94,8 @@ compExpr x = do
     case x of
         EInt integer -> return $ VInt integer
         EChar char -> return $ VChar char
-        EString string -> lift $ throw $ Undefined x
+        EString string -> return $ 
+            foldr (\e acc -> VUnion 1 (VTuple [VChar e, acc])) (VUnion 2 VVoid) string
         EIdent ident -> do
             s <- get
             v <- lift $ s Map.! ident
@@ -102,18 +103,19 @@ compExpr x = do
         ETrue -> return $ VBool True
         EFalse -> return $ VBool False
         EVoid -> return $ VVoid
-        EEmpty -> lift $ throw $ Undefined x
+        EEmpty -> return $ (VUnion 2 VVoid)
         ENot expr -> do
             (VBool b) <- compExpr expr
             return $ VBool $ not b
         ETuple expr exprs -> VTuple <$> mapM compExpr (expr:exprs) 
-        EList exprs -> lift $ throw $ Undefined x
+        EList exprs -> foldM (\acc expr -> do e <- compExpr expr; return $ VUnion 1 (VTuple [e, acc])) (VUnion 2 VVoid) (reverse exprs)
         ELambda idents expr -> do
             s <- get
             case idents of
                 [ident] -> return $ VFun (\v -> evalStateT (compExpr expr) (insertEnv ident v s))
                 ident:rest -> return $ 
                     VFun (\v -> evalStateT (compExpr (ELambda rest expr)) (insertEnv ident v s))
+                [] -> lift $ throw $ Bug $ "Empty lambda not found on type infering: " ++ show x
         EApp expr1 expr2 -> do
             (VFun f) <- compExpr expr1
             e2 <- compExpr expr2
@@ -134,7 +136,13 @@ compExpr x = do
             (VInt i1) <- compExpr expr1
             (VInt i2) <- compExpr expr2
             return $ VInt $ i1 - i2
-        EConcat expr1 expr2 -> lift $ throw $ Undefined x
+        EConcat expr1 expr2 -> do
+            e1 <- compExpr expr1
+            e2 <- compExpr expr2
+            let con a b = case a of { 
+                (VUnion 1 (VTuple [e, t])) -> VUnion 1 (VTuple [e, con t b]); 
+                (VUnion 2 VVoid) -> b }
+            return $ con e1 e2
         ENeg expr -> do
             (VInt i) <- compExpr expr
             return $ VInt (-i)
@@ -159,7 +167,10 @@ compExpr x = do
             (VBool b1) <- compExpr expr1
             (VBool b2) <- compExpr expr2
             return $ VBool $ b1 || b2
-        EAppend expr1 expr2 -> lift $ throw $ Undefined x
+        EAppend expr1 expr2 -> do
+            e1 <- compExpr expr1
+            e2 <- compExpr expr2
+            return $ VUnion 1 (VTuple [e1, e2])
         EUnion expr1 expr2 -> do
             (VInt i1) <- compExpr expr1
             v2 <- compExpr expr2
