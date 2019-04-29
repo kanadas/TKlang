@@ -1,0 +1,1 @@
+let x = if x < 10 then 2 * x else 1 in x

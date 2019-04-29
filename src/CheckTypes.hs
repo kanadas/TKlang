@@ -192,8 +192,8 @@ inferExpr x = case x of
         addCon x t2 t3
         return t3
     ELet ident expr1 expr2 -> do 
-        t <- inferExpr expr1
         v <- fresh
+        t <- withVal ident v (inferExpr expr1)
         addCon x v t
         withVal ident v (inferExpr expr2)
     EType expr type_ -> do

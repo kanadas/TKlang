@@ -18,6 +18,7 @@ for file in expr/*.in; do
         then
             mv ${file%.in}.tmp ${file%.in}.out
         fi
+        echo ""
     fi
     #echo ""
     #cat ${file%.in}.out

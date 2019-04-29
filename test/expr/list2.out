@@ -1,2 +1,2 @@
 expr/list2.in
-Unbound variable repeat
+1@((), 1@((), 1@((), 1@((), 1@((), 2@(), ), ), ), ), )
