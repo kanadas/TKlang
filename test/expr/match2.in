@@ -1,2 +1,2 @@
-let is_fst = (\x -> match x with 1@_ -> true; _ -> false;) :: int + int -> bool in is_fst (2 @ 5)
+let is_fst = (\x -> match x with {1@_ -> true; _ -> false}) :: int + int -> bool in is_fst (2 @ 5)
 

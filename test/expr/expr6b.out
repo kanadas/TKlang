@@ -1,0 +1,3 @@
+expr/expr6b.in
+Type mismatch: [int] and [((char*(TV 4.((char*#4)+void)))+void)] in expression:
+[2, 3, "lala"]

@@ -43,16 +43,29 @@ transExpr x = case x of
   EAnd expr1 expr2 -> failure x
   EOr expr1 expr2 -> failure x
   EAppend expr1 expr2 -> failure x
-  EUnion expr1 expr2 -> failure x
+  EUnion integer expr -> failure x
   EIf expr1 expr2 expr3 -> failure x
   ELet ident expr1 expr2 -> failure x
+  EMatch expr alternatives -> failure x
   EType expr type_ -> failure x
 transType :: Type -> Result
 transType x = case x of
   TBasic basic -> failure x
   TIdent ident -> failure x
+  TList type_ -> failure x
   TProduct type_1 type_2 -> failure x
   TUnion type_1 type_2 -> failure x
   TFun type_1 type_2 -> failure x
-  TList type_ -> failure x
+transAlternative :: Alternative -> Result
+transAlternative x = case x of
+  MAlternative pattern expr -> failure x
+transPattern :: Pattern -> Result
+transPattern x = case x of
+  PIdent ident -> failure x
+  PAny -> failure x
+  PTuple pattern patterns -> failure x
+  PList patterns -> failure x
+  PString string -> failure x
+  PListHT pattern1 pattern2 -> failure x
+  PUnion integer pattern -> failure x
 

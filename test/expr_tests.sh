@@ -8,9 +8,9 @@ for file in expr/*.in; do
         echo "$file WRONG ANSWER"
         echo -e "Input: \n"
         cat $file
-        echo -e "\n Output: \n"
+        echo -e "\nOutput: \n"
         cat ${file%.in}.tmp
-        echo -e "\n Should be: \n"
+        echo -e "\nShould be: \n"
         cat ${file%.in}.out
         echo ""
         read -p "Do you want to replace correct answer? " -n 1 -r

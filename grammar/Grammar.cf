@@ -23,10 +23,10 @@ ERel.           Expr6 ::= Expr6 RelOp Expr7 ;
 EAnd.           Expr5 ::= Expr5 "&" Expr6 ;
 EOr.            Expr4 ::= Expr4 "|" Expr5 ;
 EAppend.        Expr3 ::= Expr3 ":" Expr4 ;  
-EUnion.         Expr2 ::= Expr2 "@" Expr3 ;  --TODO first arg needs to be Int
+EUnion.         Expr2 ::= Integer "@" Expr3 ;
 EIf.            Expr1 ::= "if" Expr "then" Expr "else" Expr1 ;
 ELet.           Expr1 ::= "let" Ident "=" Expr "in" Expr1 ;
---EMatch.         Expr1 ::= "match" Expr "with" "{" [Alternative] "}";
+EMatch.         Expr1 ::= "match" Expr "with" "{" [Alternative] "}";
 EType.          Expr  ::= Expr1 "::" Type ;
 coercions Expr 11 ;
 
@@ -37,26 +37,27 @@ token RelOp     ('>' | '<' | {"<="} | {">="} | {"=="} | {"!="}) ;
 
 TBasic.         Type3 ::= Basic ;
 TIdent.         Type3 ::= Ident ;
+TList.          Type3 ::= "[" Type "]" ; --syntax sugar for list type
 TProduct.       Type2 ::= Type2 "*" Type3 ;
 TUnion.         Type1 ::= Type1 "+" Type2 ;
 TFun.           Type ::= Type1 "->" Type ;
-TList.          Type ::= "[" Type "]" ;--syntax sugar for list type
 coercions Type 3 ;
 
 token Basic     ({"int"} | {"bool"} | {"char"} | {"void"}) ;
 
---MAlternative.   Alternative ::= Pattern "->" Expr ;
---separator nonempty Alternative ";" ;
+MAlternative.   Alternative ::= Pattern "->" Expr ;
+separator nonempty Alternative ";" ;
 
---PIdent.         Pattern ::= Ident ;
---PAny.           Pattern ::= "_" ;
---PTuple.         Pattern ::= "(" Pattern "," [Pattern] ")" ;
---PList.          Pattern ::= "[" [Pattern] "]" ;
---PUnion.         Pattern ::= Integer "@" Pattern ;
---PListHT.        Pattern ::= Pattern ":" Pattern ;
---PString         Pattern ::= String ;
+PIdent.         Pattern2 ::= Ident ;
+PAny.           Pattern2 ::= "_" ;
+PTuple.         Pattern2 ::= "(" Pattern "," [Pattern] ")" ;
+PList.          Pattern2 ::= "[" [Pattern] "]" ;
+PString.        Pattern2 ::= String ;
+PListHT.        Pattern1 ::= Pattern1 ":" Pattern2 ;
+PUnion.         Pattern ::= Integer "@" Pattern ;
+coercions Pattern 2 ;
 
---separator nonempty Pattern "," ;
+separator nonempty Pattern "," ;
 
 --Qual.           QIdent ::= Ident "." Ident ;
 

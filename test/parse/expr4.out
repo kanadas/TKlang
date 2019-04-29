@@ -4,7 +4,7 @@ Parse Successful!
 
 [Abstract Syntax]
 
-EIf (ENot ETrue) (EUnion (EInt 1) (EAppend (EChar 'a') (EConcat (EString "la ma") (EList [EChar ' ',EChar 'k',EChar 'o',EChar 't',EChar 'a'])))) (EUnion (EInt 2) EVoid)
+EIf (ENot ETrue) (EUnion 1 (EAppend (EChar 'a') (EConcat (EString "la ma") (EList [EChar ' ',EChar 'k',EChar 'o',EChar 't',EChar 'a'])))) (EUnion 2 EVoid)
 
 [Linearized tree]
 

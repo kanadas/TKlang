@@ -171,10 +171,9 @@ compExpr x = do
             e1 <- compExpr expr1
             e2 <- compExpr expr2
             return $ VUnion 1 (VTuple [e1, e2])
-        EUnion expr1 expr2 -> do
-            (VInt i1) <- compExpr expr1
+        EUnion n expr2 -> do
             v2 <- compExpr expr2
-            return $ VUnion i1 v2
+            return $ VUnion n v2
         EIf expr1 expr2 expr3 -> do
             (VBool b) <- compExpr expr1
             if b then compExpr expr2 else compExpr expr3
@@ -183,5 +182,22 @@ compExpr x = do
             let f val = evalStateT (compExpr expr1) (Map.insert ident (f val) s)
             modify (Map.insert ident (f $ throw $ Bug "recursion"))
             compExpr expr2
+        EMatch expr alts -> lift $ throw $ Undefined x
         EType expr _ -> compExpr expr
+
+compAlternative :: Alternative -> Result
+compAlternative x = case x of
+  MAlternative pattern expr -> lift $ throw $ Bug $ show x
+
+compPattern :: Pattern -> Result
+compPattern x = case x of
+  PIdent ident -> lift $ throw $ Bug $ show x
+  PAny -> lift $ throw $ Bug $ show x
+  PTuple pattern patterns -> lift $ throw $ Bug $ show x
+  PList patterns -> lift $ throw $ Bug $ show x
+  PString string -> lift $ throw $ Bug $ show x
+  PListHT pattern1 pattern2 -> lift $ throw $ Bug $ show x
+  PUnion integer pattern -> lift $ throw $ Bug $ show x
+
+
 

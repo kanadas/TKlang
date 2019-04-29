@@ -28,19 +28,25 @@ import ErrM
   '/' { PT _ (TS _ 13) }
   ':' { PT _ (TS _ 14) }
   '::' { PT _ (TS _ 15) }
-  '=' { PT _ (TS _ 16) }
-  '@' { PT _ (TS _ 17) }
-  '[' { PT _ (TS _ 18) }
-  '[]' { PT _ (TS _ 19) }
-  ']' { PT _ (TS _ 20) }
-  'else' { PT _ (TS _ 21) }
-  'false' { PT _ (TS _ 22) }
-  'if' { PT _ (TS _ 23) }
-  'in' { PT _ (TS _ 24) }
-  'let' { PT _ (TS _ 25) }
-  'then' { PT _ (TS _ 26) }
-  'true' { PT _ (TS _ 27) }
-  '|' { PT _ (TS _ 28) }
+  ';' { PT _ (TS _ 16) }
+  '=' { PT _ (TS _ 17) }
+  '@' { PT _ (TS _ 18) }
+  '[' { PT _ (TS _ 19) }
+  '[]' { PT _ (TS _ 20) }
+  ']' { PT _ (TS _ 21) }
+  '_' { PT _ (TS _ 22) }
+  'else' { PT _ (TS _ 23) }
+  'false' { PT _ (TS _ 24) }
+  'if' { PT _ (TS _ 25) }
+  'in' { PT _ (TS _ 26) }
+  'let' { PT _ (TS _ 27) }
+  'match' { PT _ (TS _ 28) }
+  'then' { PT _ (TS _ 29) }
+  'true' { PT _ (TS _ 30) }
+  'with' { PT _ (TS _ 31) }
+  '{' { PT _ (TS _ 32) }
+  '|' { PT _ (TS _ 33) }
+  '}' { PT _ (TS _ 34) }
 
 L_integ  { PT _ (TI $$) }
 L_charac { PT _ (TC $$) }
@@ -96,10 +102,12 @@ Expr4 : Expr4 '|' Expr5 { AbsGrammar.EOr $1 $3 } | Expr5 { $1 }
 Expr3 :: { Expr }
 Expr3 : Expr3 ':' Expr4 { AbsGrammar.EAppend $1 $3 } | Expr4 { $1 }
 Expr2 :: { Expr }
-Expr2 : Expr2 '@' Expr3 { AbsGrammar.EUnion $1 $3 } | Expr3 { $1 }
+Expr2 : Integer '@' Expr3 { AbsGrammar.EUnion $1 $3 }
+      | Expr3 { $1 }
 Expr1 :: { Expr }
 Expr1 : 'if' Expr 'then' Expr 'else' Expr1 { AbsGrammar.EIf $2 $4 $6 }
       | 'let' Ident '=' Expr 'in' Expr1 { AbsGrammar.ELet $2 $4 $6 }
+      | 'match' Expr 'with' '{' ListAlternative '}' { AbsGrammar.EMatch $2 $5 }
       | Expr2 { $1 }
 Expr :: { Expr }
 Expr : Expr1 '::' Type { AbsGrammar.EType $1 $3 } | Expr1 { $1 }
@@ -110,6 +118,7 @@ ListIdent : {- empty -} { [] } | Ident ListIdent { (:) $1 $2 }
 Type3 :: { Type }
 Type3 : Basic { AbsGrammar.TBasic $1 }
       | Ident { AbsGrammar.TIdent $1 }
+      | '[' Type ']' { AbsGrammar.TList $2 }
       | '(' Type ')' { $2 }
 Type2 :: { Type }
 Type2 : Type2 '*' Type3 { AbsGrammar.TProduct $1 $3 }
@@ -117,9 +126,28 @@ Type2 : Type2 '*' Type3 { AbsGrammar.TProduct $1 $3 }
 Type1 :: { Type }
 Type1 : Type1 '+' Type2 { AbsGrammar.TUnion $1 $3 } | Type2 { $1 }
 Type :: { Type }
-Type : Type1 '->' Type { AbsGrammar.TFun $1 $3 }
-     | '[' Type ']' { AbsGrammar.TList $2 }
-     | Type1 { $1 }
+Type : Type1 '->' Type { AbsGrammar.TFun $1 $3 } | Type1 { $1 }
+Alternative :: { Alternative }
+Alternative : Pattern '->' Expr { AbsGrammar.MAlternative $1 $3 }
+ListAlternative :: { [Alternative] }
+ListAlternative : Alternative { (:[]) $1 }
+                | Alternative ';' ListAlternative { (:) $1 $3 }
+Pattern2 :: { Pattern }
+Pattern2 : Ident { AbsGrammar.PIdent $1 }
+         | '_' { AbsGrammar.PAny }
+         | '(' Pattern ',' ListPattern ')' { AbsGrammar.PTuple $2 $4 }
+         | '[' ListPattern ']' { AbsGrammar.PList $2 }
+         | String { AbsGrammar.PString $1 }
+         | '(' Pattern ')' { $2 }
+Pattern1 :: { Pattern }
+Pattern1 : Pattern1 ':' Pattern2 { AbsGrammar.PListHT $1 $3 }
+         | Pattern2 { $1 }
+Pattern :: { Pattern }
+Pattern : Integer '@' Pattern { AbsGrammar.PUnion $1 $3 }
+        | Pattern1 { $1 }
+ListPattern :: { [Pattern] }
+ListPattern : Pattern { (:[]) $1 }
+            | Pattern ',' ListPattern { (:) $1 $3 }
 {
 
 returnM :: a -> Err a

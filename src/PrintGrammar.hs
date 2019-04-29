@@ -120,9 +120,10 @@ instance Print Expr where
     EAnd expr1 expr2 -> prPrec i 5 (concatD [prt 5 expr1, doc (showString "&"), prt 6 expr2])
     EOr expr1 expr2 -> prPrec i 4 (concatD [prt 4 expr1, doc (showString "|"), prt 5 expr2])
     EAppend expr1 expr2 -> prPrec i 3 (concatD [prt 3 expr1, doc (showString ":"), prt 4 expr2])
-    EUnion expr1 expr2 -> prPrec i 2 (concatD [prt 2 expr1, doc (showString "@"), prt 3 expr2])
+    EUnion n expr -> prPrec i 2 (concatD [prt 0 n, doc (showString "@"), prt 3 expr])
     EIf expr1 expr2 expr3 -> prPrec i 1 (concatD [doc (showString "if"), prt 0 expr1, doc (showString "then"), prt 0 expr2, doc (showString "else"), prt 1 expr3])
     ELet id expr1 expr2 -> prPrec i 1 (concatD [doc (showString "let"), prt 0 id, doc (showString "="), prt 0 expr1, doc (showString "in"), prt 1 expr2])
+    EMatch expr alternatives -> prPrec i 1 (concatD [doc (showString "match"), prt 0 expr, doc (showString "with"), doc (showString "{"), prt 0 alternatives, doc (showString "}")])
     EType expr type_ -> prPrec i 0 (concatD [prt 1 expr, doc (showString "::"), prt 0 type_])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
@@ -137,8 +138,32 @@ instance Print Type where
   prt i e = case e of
     TBasic basic -> prPrec i 3 (concatD [prt 0 basic])
     TIdent id -> prPrec i 3 (concatD [prt 0 id])
+    TList type_ -> prPrec i 3 (concatD [doc (showString "["), prt 0 type_, doc (showString "]")])
     TProduct type_1 type_2 -> prPrec i 2 (concatD [prt 2 type_1, doc (showString "*"), prt 3 type_2])
     TUnion type_1 type_2 -> prPrec i 1 (concatD [prt 1 type_1, doc (showString "+"), prt 2 type_2])
     TFun type_1 type_2 -> prPrec i 0 (concatD [prt 1 type_1, doc (showString "->"), prt 0 type_2])
-    TList type_ -> prPrec i 0 (concatD [doc (showString "["), prt 0 type_, doc (showString "]")])
+
+instance Print Alternative where
+  prt i e = case e of
+    MAlternative pattern expr -> prPrec i 0 (concatD [prt 0 pattern, doc (showString "->"), prt 0 expr])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ";"), prt 0 xs]
+
+instance Print [Alternative] where
+  prt = prtList
+
+instance Print Pattern where
+  prt i e = case e of
+    PIdent id -> prPrec i 2 (concatD [prt 0 id])
+    PAny -> prPrec i 2 (concatD [doc (showString "_")])
+    PTuple pattern patterns -> prPrec i 2 (concatD [doc (showString "("), prt 0 pattern, doc (showString ","), prt 0 patterns, doc (showString ")")])
+    PList patterns -> prPrec i 2 (concatD [doc (showString "["), prt 0 patterns, doc (showString "]")])
+    PString str -> prPrec i 2 (concatD [prt 0 str])
+    PListHT pattern1 pattern2 -> prPrec i 1 (concatD [prt 1 pattern1, doc (showString ":"), prt 2 pattern2])
+    PUnion n pattern -> prPrec i 0 (concatD [prt 0 n, doc (showString "@"), prt 0 pattern])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
+
+instance Print [Pattern] where
+  prt = prtList
 

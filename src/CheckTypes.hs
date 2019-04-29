@@ -5,6 +5,8 @@ module CheckTypes(
      TypeError
     ,TAlg
     ,solveExp
+    ,TBasic
+    ,matchBasic
     ) where
 
 import AbsGrammar
@@ -33,6 +35,22 @@ instance Show TypeError where
         Bug s -> "!!!BUG!!! " ++ s
 
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
+
+data TBasic = TInt | TChar | TBool | TVoid deriving Eq
+
+instance Show TBasic where
+    show t = case t of
+        TInt -> "int"
+        TChar -> "char"
+        TBool -> "bool"
+        TVoid -> "void"
+
+matchBasic :: Basic -> TBasic
+matchBasic (Basic s) = case s of
+    "int" -> TInt
+    "char" -> TChar
+    "bool" -> TBool
+    "void" -> TVoid
 
 data TAlg = Con TBasic 
         | Var TVar
@@ -196,7 +214,7 @@ inferExpr x =
             l <- listT t1
             addCon l t2
             return $ l
-        EUnion (EInt n) expr2 
+        EUnion n expr2 
             | n <= 0 -> throwError $ WrongExpression x
             | n > 2 -> do
                 l <- emptyUnion (n - 1)
@@ -206,7 +224,6 @@ inferExpr x =
                 t1 <- inferExpr expr2
                 t2 <- fresh
                 if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
-        EUnion _ _ -> throwError $ WrongExpression x
         EIf expr1 expr2 expr3 -> do
             t1 <- inferExpr expr1
             t2 <- inferExpr expr2
@@ -219,6 +236,7 @@ inferExpr x =
             t <- withVal ident v (inferExpr expr1)
             addCon v t
             withVal ident v (inferExpr expr2)
+        EMatch expr alts -> throwError $ Undefined x
         EType expr type_ -> do
             t1 <- inferExpr expr
             t2 <- inferType type_
@@ -247,6 +265,20 @@ inferType x = case x of
         t2 <- inferType type_2
         return $ Fun t1 t2
     TList type_ -> inferType type_ >>= listT
+
+inferAlternative :: Alternative -> Infer TAlg
+inferAlternative x = case x of
+  MAlternative pattern expr -> throwError $ Bug $ show x
+
+inferPattern :: Pattern -> Infer TAlg
+inferPattern x = case x of
+  PIdent ident -> throwError $ Bug $ show x
+  PAny -> throwError $ Bug $ show x
+  PTuple pattern patterns -> throwError $ Bug $ show x
+  PList patterns -> throwError $ Bug $ show x
+  PString string -> throwError $ Bug $ show x
+  PListHT pattern1 pattern2 -> throwError $ Bug $ show x
+  PUnion integer pattern -> throwError $ Bug $ show x
 
 type Subst = Map TVar TAlg
 

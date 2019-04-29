@@ -34,18 +34,32 @@ data Expr
     | EAnd Expr Expr
     | EOr Expr Expr
     | EAppend Expr Expr
-    | EUnion Expr Expr
+    | EUnion Integer Expr
     | EIf Expr Expr Expr
     | ELet Ident Expr Expr
+    | EMatch Expr [Alternative]
     | EType Expr Type
   deriving (Eq, Ord, Show, Read)
 
 data Type
     = TBasic Basic
     | TIdent Ident
+    | TList Type
     | TProduct Type Type
     | TUnion Type Type
     | TFun Type Type
-    | TList Type
+  deriving (Eq, Ord, Show, Read)
+
+data Alternative = MAlternative Pattern Expr
+  deriving (Eq, Ord, Show, Read)
+
+data Pattern
+    = PIdent Ident
+    | PAny
+    | PTuple Pattern [Pattern]
+    | PList [Pattern]
+    | PString String
+    | PListHT Pattern Pattern
+    | PUnion Integer Pattern
   deriving (Eq, Ord, Show, Read)
 

@@ -45,7 +45,8 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in Grammar are the following:
   | ``else`` | ``false`` | ``if`` | ``in``
-  | ``let`` | ``then`` | ``true`` | 
+  | ``let`` | ``match`` | ``then`` | ``true``
+  | ``with`` |  |  | 
 
 The symbols used in Grammar are the following:
   | () | [] | ! | (
@@ -53,7 +54,8 @@ The symbols used in Grammar are the following:
   | (\ | -> | * | /
   | + | - | ++ | &
   | | | : | @ | =
-  | :: |  |  | 
+  | { | } | :: | ;
+  | _ |  |  | 
 
 ===Comments===
 Single-line comments begin with //, #.Multiple-line comments are  enclosed with /* and */.
@@ -96,10 +98,11 @@ All other symbols are terminals.
   |  |  **|**  | //Expr5// 
   | //Expr3// | -> | //Expr3// ``:`` //Expr4// 
   |  |  **|**  | //Expr4// 
-  | //Expr2// | -> | //Expr2// ``@`` //Expr3// 
+  | //Expr2// | -> | //Integer// ``@`` //Expr3// 
   |  |  **|**  | //Expr3// 
   | //Expr1// | -> | ``if`` //Expr// ``then`` //Expr// ``else`` //Expr1// 
   |  |  **|**  | ``let`` //Ident// ``=`` //Expr// ``in`` //Expr1// 
+  |  |  **|**  | ``match`` //Expr// ``with`` ``{`` //[Alternative]// ``}`` 
   |  |  **|**  | //Expr2// 
   | //Expr// | -> | //Expr1// ``::`` //Type// 
   |  |  **|**  | //Expr1// 
@@ -109,13 +112,28 @@ All other symbols are terminals.
   |  |  **|**  | //Ident// //[Ident]// 
   | //Type3// | -> | //Basic// 
   |  |  **|**  | //Ident// 
+  |  |  **|**  | ``[`` //Type// ``]`` 
   |  |  **|**  | ``(`` //Type// ``)`` 
   | //Type2// | -> | //Type2// ``*`` //Type3// 
   |  |  **|**  | //Type3// 
   | //Type1// | -> | //Type1// ``+`` //Type2// 
   |  |  **|**  | //Type2// 
   | //Type// | -> | //Type1// ``->`` //Type// 
-  |  |  **|**  | ``[`` //Type// ``]`` 
   |  |  **|**  | //Type1// 
+  | //Alternative// | -> | //Pattern// ``->`` //Expr// 
+  | //[Alternative]// | -> | //Alternative// 
+  |  |  **|**  | //Alternative// ``;`` //[Alternative]// 
+  | //Pattern2// | -> | //Ident// 
+  |  |  **|**  | ``_`` 
+  |  |  **|**  | ``(`` //Pattern// ``,`` //[Pattern]// ``)`` 
+  |  |  **|**  | ``[`` //[Pattern]// ``]`` 
+  |  |  **|**  | //String// 
+  |  |  **|**  | ``(`` //Pattern// ``)`` 
+  | //Pattern1// | -> | //Pattern1// ``:`` //Pattern2// 
+  |  |  **|**  | //Pattern2// 
+  | //Pattern// | -> | //Integer// ``@`` //Pattern// 
+  |  |  **|**  | //Pattern1// 
+  | //[Pattern]// | -> | //Pattern// 
+  |  |  **|**  | //Pattern// ``,`` //[Pattern]// 
 
 

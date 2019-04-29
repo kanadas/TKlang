@@ -1,5 +1,6 @@
 expr/match2.in
+Undefined expression: match x with {
+  1 @ _ -> true;
+  _ -> false 
+}
 
-Parse              Failed...
-
-syntax error at line 1, column 36 due to lexer error
