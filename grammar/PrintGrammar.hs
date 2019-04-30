@@ -159,6 +159,10 @@ instance Print Pattern where
     PTuple pattern patterns -> prPrec i 2 (concatD [doc (showString "("), prt 0 pattern, doc (showString ","), prt 0 patterns, doc (showString ")")])
     PList patterns -> prPrec i 2 (concatD [doc (showString "["), prt 0 patterns, doc (showString "]")])
     PString str -> prPrec i 2 (concatD [prt 0 str])
+    PInt n -> prPrec i 2 (concatD [prt 0 n])
+    PChar c -> prPrec i 2 (concatD [prt 0 c])
+    PTrue -> prPrec i 2 (concatD [doc (showString "true")])
+    PFalse -> prPrec i 2 (concatD [doc (showString "false")])
     PListHT pattern1 pattern2 -> prPrec i 1 (concatD [prt 1 pattern1, doc (showString ":"), prt 2 pattern2])
     PUnion n pattern -> prPrec i 0 (concatD [prt 0 n, doc (showString "@"), prt 0 pattern])
   prtList _ [x] = concatD [prt 0 x]

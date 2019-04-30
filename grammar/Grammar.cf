@@ -53,6 +53,12 @@ PAny.           Pattern2 ::= "_" ;
 PTuple.         Pattern2 ::= "(" Pattern "," [Pattern] ")" ;
 PList.          Pattern2 ::= "[" [Pattern] "]" ;
 PString.        Pattern2 ::= String ;
+PInt.           Pattern2 ::= Integer ;
+PChar.          Pattern2 ::= Char ;
+PTrue.          Pattern2 ::= "true" ;
+PFalse.         Pattern2 ::= "false" ;
+--PEmpty.         Pattern2 ::= "[]" ; TODO
+--PVoid.          Pattern2 ::= "()" ; TODO
 PListHT.        Pattern1 ::= Pattern1 ":" Pattern2 ;
 PUnion.         Pattern ::= Integer "@" Pattern ;
 coercions Pattern 2 ;

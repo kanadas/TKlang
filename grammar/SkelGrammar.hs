@@ -66,6 +66,10 @@ transPattern x = case x of
   PTuple pattern patterns -> failure x
   PList patterns -> failure x
   PString string -> failure x
+  PInt integer -> failure x
+  PChar char -> failure x
+  PTrue -> failure x
+  PFalse -> failure x
   PListHT pattern1 pattern2 -> failure x
   PUnion integer pattern -> failure x
 

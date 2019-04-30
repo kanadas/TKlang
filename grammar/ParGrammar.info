@@ -75,13 +75,17 @@ Grammar
 	Pattern2 -> '(' Pattern ',' ListPattern ')'        (66)
 	Pattern2 -> '[' ListPattern ']'                    (67)
 	Pattern2 -> String                                 (68)
-	Pattern2 -> '(' Pattern ')'                        (69)
-	Pattern1 -> Pattern1 ':' Pattern2                  (70)
-	Pattern1 -> Pattern2                               (71)
-	Pattern -> Integer '@' Pattern                     (72)
-	Pattern -> Pattern1                                (73)
-	ListPattern -> Pattern                             (74)
-	ListPattern -> Pattern ',' ListPattern             (75)
+	Pattern2 -> Integer                                (69)
+	Pattern2 -> Char                                   (70)
+	Pattern2 -> 'true'                                 (71)
+	Pattern2 -> 'false'                                (72)
+	Pattern2 -> '(' Pattern ')'                        (73)
+	Pattern1 -> Pattern1 ':' Pattern2                  (74)
+	Pattern1 -> Pattern2                               (75)
+	Pattern -> Integer '@' Pattern                     (76)
+	Pattern -> Pattern1                                (77)
+	ListPattern -> Pattern                             (78)
+	ListPattern -> Pattern ',' ListPattern             (79)
 
 -----------------------------------------------------------------------------
 Terminals
@@ -157,10 +161,10 @@ Non-terminals
 	Type            rules 59, 60
 	Alternative     rule  61
 	ListAlternative rules 62, 63
-	Pattern2        rules 64, 65, 66, 67, 68, 69
-	Pattern1        rules 70, 71
-	Pattern         rules 72, 73
-	ListPattern     rules 74, 75
+	Pattern2        rules 64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+	Pattern1        rules 74, 75
+	Pattern         rules 76, 77
+	ListPattern     rules 78, 79
 
 -----------------------------------------------------------------------------
 States
@@ -223,6 +227,7 @@ State 2
 	'++'           reduce using rule 1
 	','            reduce using rule 1
 	'-'            reduce using rule 1
+	'->'           reduce using rule 1
 	'/'            reduce using rule 1
 	':'            reduce using rule 1
 	'::'           reduce using rule 1
@@ -1074,6 +1079,7 @@ State 31
 	'++'           reduce using rule 2
 	','            reduce using rule 2
 	'-'            reduce using rule 2
+	'->'           reduce using rule 2
 	'/'            reduce using rule 2
 	':'            reduce using rule 2
 	'::'           reduce using rule 2
@@ -2409,21 +2415,25 @@ State 86
 
 	Expr1 -> 'match' Expr 'with' '{' . ListAlternative '}'    (rule 43)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Alternative    goto state 109
-	ListAlternativegoto state 110
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 113
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Alternative    goto state 110
+	ListAlternativegoto state 111
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 114
 
 State 87
 
@@ -2722,7 +2732,7 @@ State 104
 	Expr4          goto state 14
 	Expr3          goto state 15
 	Expr2          goto state 16
-	Expr1          goto state 126
+	Expr1          goto state 129
 
 State 105
 
@@ -2759,16 +2769,33 @@ State 105
 	Expr4          goto state 14
 	Expr3          goto state 15
 	Expr2          goto state 16
-	Expr1          goto state 125
+	Expr1          goto state 128
 
 State 106
 
-	Pattern -> Integer . '@' Pattern                    (rule 72)
+	Pattern2 -> Integer .                               (rule 69)
+	Pattern -> Integer . '@' Pattern                    (rule 76)
 
-	'@'            shift, and enter state 124
+	')'            reduce using rule 69
+	','            reduce using rule 69
+	'->'           reduce using rule 69
+	':'            reduce using rule 69
+	'@'            shift, and enter state 127
+	']'            reduce using rule 69
 
 
 State 107
+
+	Pattern2 -> Char .                                  (rule 70)
+
+	')'            reduce using rule 70
+	','            reduce using rule 70
+	'->'           reduce using rule 70
+	':'            reduce using rule 70
+	']'            reduce using rule 70
+
+
+State 108
 
 	Pattern2 -> String .                                (rule 68)
 
@@ -2779,7 +2806,7 @@ State 107
 	']'            reduce using rule 68
 
 
-State 108
+State 109
 
 	Pattern2 -> Ident .                                 (rule 64)
 
@@ -2790,91 +2817,99 @@ State 108
 	']'            reduce using rule 64
 
 
-State 109
+State 110
 
 	ListAlternative -> Alternative .                    (rule 62)
 	ListAlternative -> Alternative . ';' ListAlternative    (rule 63)
 
-	';'            shift, and enter state 123
+	';'            shift, and enter state 126
 	'}'            reduce using rule 62
-
-
-State 110
-
-	Expr1 -> 'match' Expr 'with' '{' ListAlternative . '}'    (rule 43)
-
-	'}'            shift, and enter state 122
 
 
 State 111
 
-	Pattern1 -> Pattern2 .                              (rule 71)
+	Expr1 -> 'match' Expr 'with' '{' ListAlternative . '}'    (rule 43)
 
-	')'            reduce using rule 71
-	','            reduce using rule 71
-	'->'           reduce using rule 71
-	':'            reduce using rule 71
-	']'            reduce using rule 71
+	'}'            shift, and enter state 125
 
 
 State 112
 
-	Pattern1 -> Pattern1 . ':' Pattern2                 (rule 70)
-	Pattern -> Pattern1 .                               (rule 73)
+	Pattern1 -> Pattern2 .                              (rule 75)
 
-	')'            reduce using rule 73
-	','            reduce using rule 73
-	'->'           reduce using rule 73
-	':'            shift, and enter state 121
-	']'            reduce using rule 73
+	')'            reduce using rule 75
+	','            reduce using rule 75
+	'->'           reduce using rule 75
+	':'            reduce using rule 75
+	']'            reduce using rule 75
 
 
 State 113
 
-	Alternative -> Pattern . '->' Expr                  (rule 61)
+	Pattern1 -> Pattern1 . ':' Pattern2                 (rule 74)
+	Pattern -> Pattern1 .                               (rule 77)
 
-	'->'           shift, and enter state 120
+	')'            reduce using rule 77
+	','            reduce using rule 77
+	'->'           reduce using rule 77
+	':'            shift, and enter state 124
+	']'            reduce using rule 77
 
 
 State 114
 
-	Pattern2 -> '(' . Pattern ',' ListPattern ')'       (rule 66)
-	Pattern2 -> '(' . Pattern ')'                       (rule 69)
+	Alternative -> Pattern . '->' Expr                  (rule 61)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
-	L_integ        shift, and enter state 2
-	L_quoted       shift, and enter state 32
-	L_ident        shift, and enter state 33
+	'->'           shift, and enter state 123
 
-	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 119
 
 State 115
 
-	Pattern2 -> '[' . ListPattern ']'                   (rule 67)
+	Pattern2 -> '(' . Pattern ',' ListPattern ')'       (rule 66)
+	Pattern2 -> '(' . Pattern ')'                       (rule 73)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 117
-	ListPattern    goto state 118
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 122
 
 State 116
+
+	Pattern2 -> '[' . ListPattern ']'                   (rule 67)
+
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
+	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
+	L_quoted       shift, and enter state 32
+	L_ident        shift, and enter state 33
+
+	Integer        goto state 106
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 120
+	ListPattern    goto state 121
+
+State 117
 
 	Pattern2 -> '_' .                                   (rule 65)
 
@@ -2885,33 +2920,55 @@ State 116
 	']'            reduce using rule 65
 
 
-State 117
-
-	ListPattern -> Pattern .                            (rule 74)
-	ListPattern -> Pattern . ',' ListPattern            (rule 75)
-
-	')'            reduce using rule 74
-	','            shift, and enter state 134
-	']'            reduce using rule 74
-
-
 State 118
 
-	Pattern2 -> '[' ListPattern . ']'                   (rule 67)
+	Pattern2 -> 'false' .                               (rule 72)
 
-	']'            shift, and enter state 133
+	')'            reduce using rule 72
+	','            reduce using rule 72
+	'->'           reduce using rule 72
+	':'            reduce using rule 72
+	']'            reduce using rule 72
 
 
 State 119
 
-	Pattern2 -> '(' Pattern . ',' ListPattern ')'       (rule 66)
-	Pattern2 -> '(' Pattern . ')'                       (rule 69)
+	Pattern2 -> 'true' .                                (rule 71)
 
-	')'            shift, and enter state 131
-	','            shift, and enter state 132
+	')'            reduce using rule 71
+	','            reduce using rule 71
+	'->'           reduce using rule 71
+	':'            reduce using rule 71
+	']'            reduce using rule 71
 
 
 State 120
+
+	ListPattern -> Pattern .                            (rule 78)
+	ListPattern -> Pattern . ',' ListPattern            (rule 79)
+
+	')'            reduce using rule 78
+	','            shift, and enter state 138
+	']'            reduce using rule 78
+
+
+State 121
+
+	Pattern2 -> '[' ListPattern . ']'                   (rule 67)
+
+	']'            shift, and enter state 137
+
+
+State 122
+
+	Pattern2 -> '(' Pattern . ',' ListPattern ')'       (rule 66)
+	Pattern2 -> '(' Pattern . ')'                       (rule 73)
+
+	')'            shift, and enter state 135
+	','            shift, and enter state 136
+
+
+State 123
 
 	Alternative -> Pattern '->' . Expr                  (rule 61)
 
@@ -2947,23 +3004,29 @@ State 120
 	Expr3          goto state 15
 	Expr2          goto state 16
 	Expr1          goto state 17
-	Expr           goto state 130
+	Expr           goto state 134
 
-State 121
+State 124
 
-	Pattern1 -> Pattern1 ':' . Pattern2                 (rule 70)
+	Pattern1 -> Pattern1 ':' . Pattern2                 (rule 74)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
+	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 129
+	Integer        goto state 132
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 133
 
-State 122
+State 125
 
 	Expr1 -> 'match' Expr 'with' '{' ListAlternative '}' .    (rule 43)
 
@@ -2980,45 +3043,53 @@ State 122
 	%eof           reduce using rule 43
 
 
-State 123
+State 126
 
 	ListAlternative -> Alternative ';' . ListAlternative    (rule 63)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Alternative    goto state 109
-	ListAlternativegoto state 128
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 113
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Alternative    goto state 110
+	ListAlternativegoto state 131
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 114
 
-State 124
+State 127
 
-	Pattern -> Integer '@' . Pattern                    (rule 72)
+	Pattern -> Integer '@' . Pattern                    (rule 76)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 127
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 130
 
-State 125
+State 128
 
 	Expr1 -> 'let' Ident '=' Expr 'in' Expr1 .          (rule 42)
 
@@ -3035,7 +3106,7 @@ State 125
 	%eof           reduce using rule 42
 
 
-State 126
+State 129
 
 	Expr1 -> 'if' Expr 'then' Expr 'else' Expr1 .       (rule 41)
 
@@ -3052,45 +3123,26 @@ State 126
 	%eof           reduce using rule 41
 
 
-State 127
+State 130
 
-	Pattern -> Integer '@' Pattern .                    (rule 72)
+	Pattern -> Integer '@' Pattern .                    (rule 76)
 
-	')'            reduce using rule 72
-	','            reduce using rule 72
-	'->'           reduce using rule 72
-	']'            reduce using rule 72
+	')'            reduce using rule 76
+	','            reduce using rule 76
+	'->'           reduce using rule 76
+	']'            reduce using rule 76
 
 
-State 128
+State 131
 
 	ListAlternative -> Alternative ';' ListAlternative .    (rule 63)
 
 	'}'            reduce using rule 63
 
 
-State 129
+State 132
 
-	Pattern1 -> Pattern1 ':' Pattern2 .                 (rule 70)
-
-	')'            reduce using rule 70
-	','            reduce using rule 70
-	'->'           reduce using rule 70
-	':'            reduce using rule 70
-	']'            reduce using rule 70
-
-
-State 130
-
-	Alternative -> Pattern '->' Expr .                  (rule 61)
-
-	';'            reduce using rule 61
-	'}'            reduce using rule 61
-
-
-State 131
-
-	Pattern2 -> '(' Pattern ')' .                       (rule 69)
+	Pattern2 -> Integer .                               (rule 69)
 
 	')'            reduce using rule 69
 	','            reduce using rule 69
@@ -3099,26 +3151,60 @@ State 131
 	']'            reduce using rule 69
 
 
-State 132
+State 133
+
+	Pattern1 -> Pattern1 ':' Pattern2 .                 (rule 74)
+
+	')'            reduce using rule 74
+	','            reduce using rule 74
+	'->'           reduce using rule 74
+	':'            reduce using rule 74
+	']'            reduce using rule 74
+
+
+State 134
+
+	Alternative -> Pattern '->' Expr .                  (rule 61)
+
+	';'            reduce using rule 61
+	'}'            reduce using rule 61
+
+
+State 135
+
+	Pattern2 -> '(' Pattern ')' .                       (rule 73)
+
+	')'            reduce using rule 73
+	','            reduce using rule 73
+	'->'           reduce using rule 73
+	':'            reduce using rule 73
+	']'            reduce using rule 73
+
+
+State 136
 
 	Pattern2 -> '(' Pattern ',' . ListPattern ')'       (rule 66)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 117
-	ListPattern    goto state 136
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 120
+	ListPattern    goto state 140
 
-State 133
+State 137
 
 	Pattern2 -> '[' ListPattern ']' .                   (rule 67)
 
@@ -3129,41 +3215,45 @@ State 133
 	']'            reduce using rule 67
 
 
-State 134
+State 138
 
-	ListPattern -> Pattern ',' . ListPattern            (rule 75)
+	ListPattern -> Pattern ',' . ListPattern            (rule 79)
 
-	'('            shift, and enter state 114
-	'['            shift, and enter state 115
-	'_'            shift, and enter state 116
+	'('            shift, and enter state 115
+	'['            shift, and enter state 116
+	'_'            shift, and enter state 117
+	'false'        shift, and enter state 118
+	'true'         shift, and enter state 119
 	L_integ        shift, and enter state 2
+	L_charac       shift, and enter state 31
 	L_quoted       shift, and enter state 32
 	L_ident        shift, and enter state 33
 
 	Integer        goto state 106
-	String         goto state 107
-	Ident          goto state 108
-	Pattern2       goto state 111
-	Pattern1       goto state 112
-	Pattern        goto state 117
-	ListPattern    goto state 135
+	Char           goto state 107
+	String         goto state 108
+	Ident          goto state 109
+	Pattern2       goto state 112
+	Pattern1       goto state 113
+	Pattern        goto state 120
+	ListPattern    goto state 139
 
-State 135
+State 139
 
-	ListPattern -> Pattern ',' ListPattern .            (rule 75)
+	ListPattern -> Pattern ',' ListPattern .            (rule 79)
 
-	')'            reduce using rule 75
-	']'            reduce using rule 75
+	')'            reduce using rule 79
+	']'            reduce using rule 79
 
 
-State 136
+State 140
 
 	Pattern2 -> '(' Pattern ',' ListPattern . ')'       (rule 66)
 
-	')'            shift, and enter state 137
+	')'            shift, and enter state 141
 
 
-State 137
+State 141
 
 	Pattern2 -> '(' Pattern ',' ListPattern ')' .       (rule 66)
 
@@ -3177,7 +3267,7 @@ State 137
 -----------------------------------------------------------------------------
 Grammar Totals
 -----------------------------------------------------------------------------
-Number of rules: 76
+Number of rules: 80
 Number of terminals: 40
 Number of non-terminals: 31
-Number of states: 138
+Number of states: 142

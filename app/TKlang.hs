@@ -6,6 +6,7 @@ import System.Exit ( exitFailure, exitSuccess )
 import Control.Monad (when)
 import Data.Map (Map)
 import Control.Monad.Trans
+import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
 import Control.Monad.Except
 import qualified Data.Map as Map
@@ -41,7 +42,7 @@ run v p s =
             case runExcept (solveExp tree) of
                 Left e -> putStrLn (show e) >> exitFailure
                 Right () ->
-                    case runComp $ evalStateT (compExpr tree) Map.empty of
+                    case runComp $ runReaderT (compExpr tree) Map.empty of
                         Right v -> putStrLn (show v) >> exitSuccess
                         Left err -> putStrLn ("Error: " ++ (show err)) >> showTree v tree >> exitFailure
 

@@ -138,6 +138,10 @@ Pattern2 : Ident { AbsGrammar.PIdent $1 }
          | '(' Pattern ',' ListPattern ')' { AbsGrammar.PTuple $2 $4 }
          | '[' ListPattern ']' { AbsGrammar.PList $2 }
          | String { AbsGrammar.PString $1 }
+         | Integer { AbsGrammar.PInt $1 }
+         | Char { AbsGrammar.PChar $1 }
+         | 'true' { AbsGrammar.PTrue }
+         | 'false' { AbsGrammar.PFalse }
          | '(' Pattern ')' { $2 }
 Pattern1 :: { Pattern }
 Pattern1 : Pattern1 ':' Pattern2 { AbsGrammar.PListHT $1 $3 }

@@ -67,6 +67,10 @@ data Pattern
     | PTuple Pattern [Pattern]
     | PList [Pattern]
     | PString String
+    | PInt Integer
+    | PChar Char
+    | PTrue
+    | PFalse
     | PListHT Pattern Pattern
     | PUnion Integer Pattern
   deriving (Eq, Ord, Show, Read)

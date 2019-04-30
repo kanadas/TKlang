@@ -300,7 +300,12 @@ inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
         return (e, l)
     PString _ -> do 
         l <- listT $ Con TChar 
-        return $ (Map.empty, l)
+        return (Map.empty, l)
+    PInt _ -> return (Map.empty, Con TInt)
+    PChar _ -> return (Map.empty, Con TChar)
+    PTrue -> return (Map.empty, Con TBool)
+    PFalse -> return (Map.empty, Con TBool)
+    --PVoid -> return (Map.empty, Con TVoid)
     PListHT pattern1 pattern2 -> do
         (e1, t1) <- inferPattern expr pattern1
         (e2, t2) <- inferPattern expr pattern2
@@ -386,4 +391,5 @@ solveExp expr = do
     (s, cons) <- execRWST (inferExpr expr) Map.empty 0
     sub <- evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
     foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
+
 

@@ -1,0 +1,4 @@
+let concat = (\l1 l2 -> match l1 with {
+    h:t -> h : concat t l2;
+    2@_ -> l2}) in
+concat [1, 2, 3, 4] [5, 6, 7, 8]

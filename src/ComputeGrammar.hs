@@ -1,27 +1,36 @@
 --v0.0.1 just basic types, dynamic typing
-
+{-# LANGUAGE MultiParamTypeClasses #-}
 module ComputeGrammar where
 
-import Debug.Trace
+--import Debug.Trace
 
 import AbsGrammar
 import PrintGrammar
 --import Data.Maybe
 import Data.Map (Map)
+--import Control.Applicative hiding (Alternative)
 import Control.Monad.Trans
-import Control.Monad.Trans.State
-import Control.Monad.Trans.Reader
 import Control.Monad.Except
+--import Control.Monad.Trans.State
+import Control.Monad.Trans.Reader
+--import Control.Monad.Except
 import Control.Monad.Fail
 import qualified Data.Map as Map
 
-
-data CompError = DivisionByZero Expr | Undefined Expr | Bug String
+data CompError = 
+      DivisionByZero Expr 
+    | Undefined Expr 
+    | NotMatched
+    | NoMatch Expr Value
+    | Bug String
+    deriving Eq
 
 instance Show CompError where
     show ce = case ce of
         DivisionByZero e -> "Division by zero in: " ++ (render $ prt 0 e)
         Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
+        NotMatched -> "Not matched"
+        NoMatch e v -> "No match for " ++ show v ++ " in: \n" ++ (render $ prt 0 e)
         Bug s -> "!!!BUG!!!: " ++ s
 
 data CompExcept a = CompExcept {runComp :: Either CompError a} deriving Show
@@ -43,11 +52,20 @@ throw = CompExcept . throwError
 instance MonadFail CompExcept where
     fail s = throw $ Bug s
 
+instance Eq a => Eq (CompExcept a) where
+    (==) a b = case (runComp a, runComp b) of
+        (Right x, Right y) -> x == y
+        _ -> False
+
+instance MonadError CompError CompExcept  where
+    throwError = CompExcept . throwError
+    catchError x f = CompExcept $ catchError (runComp x) (runComp . f)
+
 data Value = VInt Integer 
             | VChar Char 
             | VBool Bool 
             | VVoid 
-            | VFun (Value -> Result)
+            | VFun (Value -> CompExcept Value)
             | VTuple [Value]
             | VUnion Integer Value
 
@@ -76,7 +94,9 @@ type Env = Map Ident (CompExcept Value)
 insertEnv :: Ident -> Value -> Env -> Env
 insertEnv i v = Map.insert i (return v)
 
-type Result = ReaderT Env CompExcept Value
+type Compute a = ReaderT Env CompExcept a
+
+type Result = Compute Value
 
 compIdent :: Ident -> String
 compIdent x = case x of
@@ -111,15 +131,16 @@ compExpr x = do
         ETuple expr exprs -> VTuple <$> mapM compExpr (expr:exprs) 
         EList exprs -> foldM (\acc expr -> do e <- compExpr expr; return $ VUnion 1 (VTuple [e, acc])) (VUnion 2 VVoid) (reverse exprs)
         ELambda idents expr -> do
+            s <- ask
             case idents of
-                [ident] -> return $ VFun (\v -> local (insertEnv ident v) (compExpr expr) )
+                [ident] -> return $ VFun (\v -> runReaderT (compExpr expr) (insertEnv ident v s))
                 ident:rest -> return $
-                    VFun (\v -> local (insertEnv ident v) (compExpr (ELambda rest expr)) )
+                    VFun (\v -> runReaderT (compExpr (ELambda rest expr)) (insertEnv ident v s))
                 [] -> lift $ throw $ Bug $ "Empty lambda not found on type infering: " ++ show x
         EApp expr1 expr2 -> do
             (VFun f) <- compExpr expr1
             e2 <- compExpr expr2
-            f e2
+            lift $ f e2
         EMul expr1 expr2 -> do
             (VInt i1) <- compExpr expr1
             (VInt i2) <- compExpr expr2
@@ -181,22 +202,45 @@ compExpr x = do
             s <- ask
             let f val = runReaderT (compExpr expr1) (Map.insert ident (f val) s)
             local (Map.insert ident (f $ throw $ Bug "recursion")) (compExpr expr2)
-        EMatch expr alts -> lift $ throw $ Undefined x
+        EMatch expr alts -> do
+            v <- compExpr expr
+            let f l = case l of {
+                h:t -> catchError (compAlternative v h) 
+                    (\e -> if e == NotMatched then f t else throwError e); 
+                [] -> throwError $ NoMatch x v}
+            f alts
         EType expr _ -> compExpr expr
 
-compAlternative :: Alternative -> Result
-compAlternative x = case x of
-  MAlternative pattern expr -> lift $ throw $ Bug $ show x
+compAlternative :: Value -> Alternative -> Result
+compAlternative v x = case x of
+    MAlternative pattern expr -> do
+        e <- compPattern v pattern
+        local (Map.union e) (compExpr expr)
 
-compPattern :: Pattern -> Result
-compPattern x = case x of
-  PIdent ident -> lift $ throw $ Bug $ show x
-  PAny -> lift $ throw $ Bug $ show x
-  PTuple pattern patterns -> lift $ throw $ Bug $ show x
-  PList patterns -> lift $ throw $ Bug $ show x
-  PString string -> lift $ throw $ Bug $ show x
-  PListHT pattern1 pattern2 -> lift $ throw $ Bug $ show x
-  PUnion integer pattern -> lift $ throw $ Bug $ show x
+concatEnv :: Env -> Env -> Compute Env
+concatEnv e1 e2 = sequence 
+    (Map.intersectionWith (\a b -> if a /= b then lift $ throw NotMatched else return ()) e1 e2) >>
+    (return $ Map.union e1 e2)
 
+compPattern :: Value -> Pattern -> Compute Env
+compPattern (VInt i1) (PInt i2) | i1 == i2 = return Map.empty
+compPattern (VBool b1) (PTrue) | b1 = return Map.empty
+compPattern (VBool b1) (PFalse) | not b1 = return Map.empty
+compPattern (VChar c1) (PChar c2) | c1 == c2 = return Map.empty
+--compPattern VVoid PVoid = return Map.empty
+--compPattern (VUnion 2 VVoid) PEmpty = return Map.empty
+compPattern (VTuple l1) (PTuple pat ps) = 
+    foldM (\acc (v, p) -> compPattern v p >>= concatEnv acc) (Map.empty) (zip l1 (pat:ps))
+compPattern (VUnion n1 p1) (PUnion n2 p2) | n1 == n2 = compPattern p1 p2
+compPattern (VUnion 1 (VTuple [h1,t1])) (PList (h2:t2)) = do
+    e1 <- compPattern h1 h2
+    e2 <- if t2 == [] then compPattern t1 (PUnion 2 PVoid) else compPattern t1 (PList t2)
+    concatEnv e1 e2
+compPattern (VUnion 2 (VVoid)) (PString "") = return Map.empty
+compPattern (VUnion 1 (VTuple [c1, t1])) (PString (c2:t2)) | c1 == c2 = 
+    compPattern t1 (PString t2)
+compPattern v (PIdent ident) = return $ Map.singleton ident (return v)
+compPattern _ PAny = return $ Map.empty
+compPattern _ _ = lift $ throw NotMatched
 
 
