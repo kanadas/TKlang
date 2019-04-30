@@ -10,6 +10,7 @@ import PrintGrammar
 import Data.Map (Map)
 import Control.Monad.Trans
 import Control.Monad.Trans.State
+import Control.Monad.Trans.Reader
 import Control.Monad.Except
 import Control.Monad.Fail
 import qualified Data.Map as Map
@@ -46,7 +47,7 @@ data Value = VInt Integer
             | VChar Char 
             | VBool Bool 
             | VVoid 
-            | VFun (Value -> CompExcept Value)
+            | VFun (Value -> Result)
             | VTuple [Value]
             | VUnion Integer Value
 
@@ -75,7 +76,7 @@ type Env = Map Ident (CompExcept Value)
 insertEnv :: Ident -> Value -> Env -> Env
 insertEnv i v = Map.insert i (return v)
 
-type Result = StateT Env CompExcept Value
+type Result = ReaderT Env CompExcept Value
 
 compIdent :: Ident -> String
 compIdent x = case x of
@@ -97,7 +98,7 @@ compExpr x = do
         EString string -> return $ 
             foldr (\e acc -> VUnion 1 (VTuple [VChar e, acc])) (VUnion 2 VVoid) string
         EIdent ident -> do
-            s <- get
+            s <- ask
             v <- lift $ s Map.! ident
             return v
         ETrue -> return $ VBool True
@@ -110,16 +111,15 @@ compExpr x = do
         ETuple expr exprs -> VTuple <$> mapM compExpr (expr:exprs) 
         EList exprs -> foldM (\acc expr -> do e <- compExpr expr; return $ VUnion 1 (VTuple [e, acc])) (VUnion 2 VVoid) (reverse exprs)
         ELambda idents expr -> do
-            s <- get
             case idents of
-                [ident] -> return $ VFun (\v -> evalStateT (compExpr expr) (insertEnv ident v s))
-                ident:rest -> return $ 
-                    VFun (\v -> evalStateT (compExpr (ELambda rest expr)) (insertEnv ident v s))
+                [ident] -> return $ VFun (\v -> local (insertEnv ident v) (compExpr expr) )
+                ident:rest -> return $
+                    VFun (\v -> local (insertEnv ident v) (compExpr (ELambda rest expr)) )
                 [] -> lift $ throw $ Bug $ "Empty lambda not found on type infering: " ++ show x
         EApp expr1 expr2 -> do
             (VFun f) <- compExpr expr1
             e2 <- compExpr expr2
-            lift $ f e2
+            f e2
         EMul expr1 expr2 -> do
             (VInt i1) <- compExpr expr1
             (VInt i2) <- compExpr expr2
@@ -178,10 +178,9 @@ compExpr x = do
             (VBool b) <- compExpr expr1
             if b then compExpr expr2 else compExpr expr3
         ELet ident expr1 expr2 -> do
-            s <- get
-            let f val = evalStateT (compExpr expr1) (Map.insert ident (f val) s)
-            modify (Map.insert ident (f $ throw $ Bug "recursion"))
-            compExpr expr2
+            s <- ask
+            let f val = runReaderT (compExpr expr1) (Map.insert ident (f val) s)
+            local (Map.insert ident (f $ throw $ Bug "recursion")) (compExpr expr2)
         EMatch expr alts -> lift $ throw $ Undefined x
         EType expr _ -> compExpr expr
 

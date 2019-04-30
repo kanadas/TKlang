@@ -16,7 +16,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Control.Monad.Trans
+--import Control.Monad.Trans
 import Control.Monad.RWS
 import Control.Monad.Except
 import Control.Monad.State
@@ -99,15 +99,11 @@ getEnv ident = do
 
 emptyUnion :: Integer -> Infer [TAlg]
 emptyUnion n
-    | n > 2 = do
+    | n >= 2 = do
         v <- fresh
         l <- emptyUnion (n-1)
         return $ (v:l)
-    | n == 2 = do
-        v1 <- fresh
-        v2 <- fresh
-        return $ [v1, v2]
-    | otherwise = throwError $ Bug "union less than two types"
+    | otherwise = sequence [fresh]
 
 listT :: TAlg -> Infer TAlg
 listT t = do
@@ -216,14 +212,10 @@ inferExpr x =
             return $ l
         EUnion n expr2 
             | n <= 0 -> throwError $ WrongExpression x
-            | n > 2 -> do
+            | otherwise -> do
                 l <- emptyUnion (n - 1)
                 t <- inferExpr expr2
-                return $ Union (l ++ [t]) 
-            | otherwise -> do
-                t1 <- inferExpr expr2
-                t2 <- fresh
-                if n == 1 then return $ Union [t1, t2] else return $ Union [t2, t1]
+                if n == 1 then return $ Union (t : l) else return $ Union $ l ++ [t]
         EIf expr1 expr2 expr3 -> do
             t1 <- inferExpr expr1
             t2 <- inferExpr expr2
@@ -236,7 +228,14 @@ inferExpr x =
             t <- withVal ident v (inferExpr expr1)
             addCon v t
             withVal ident v (inferExpr expr2)
-        EMatch expr alts -> throwError $ Undefined x
+        EMatch expr alts -> do
+            t <- inferExpr expr
+            v <- fresh
+            foldM (\_ alt -> do
+                (t1, t2) <- inferAlternative alt
+                addCon t t1
+                addCon v t2) () alts
+            return v
         EType expr type_ -> do
             t1 <- inferExpr expr
             t2 <- inferType type_
@@ -266,19 +265,55 @@ inferType x = case x of
         return $ Fun t1 t2
     TList type_ -> inferType type_ >>= listT
 
-inferAlternative :: Alternative -> Infer TAlg
+inferAlternative :: Alternative -> Infer (TAlg, TAlg)
 inferAlternative x = case x of
-  MAlternative pattern expr -> throwError $ Bug $ show x
+    MAlternative pattern expr -> do
+        (e, t1) <- inferPattern expr pattern
+        t2 <- local (Map.union e) (inferExpr expr)
+        return (t1, t2)
 
-inferPattern :: Pattern -> Infer TAlg
-inferPattern x = case x of
-  PIdent ident -> throwError $ Bug $ show x
-  PAny -> throwError $ Bug $ show x
-  PTuple pattern patterns -> throwError $ Bug $ show x
-  PList patterns -> throwError $ Bug $ show x
-  PString string -> throwError $ Bug $ show x
-  PListHT pattern1 pattern2 -> throwError $ Bug $ show x
-  PUnion integer pattern -> throwError $ Bug $ show x
+concatEnv :: Expr -> Env -> Env -> Infer Env
+concatEnv e e1 e2 = 
+    sequence (Map.intersectionWith (\a b -> tell [(a, b, e)]) e1 e2) >> (return $ Map.union e1 e2)
+
+inferPattern :: Expr -> Pattern -> Infer (Env, TAlg)
+inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
+    PIdent ident -> do
+        v <- fresh
+        return (Map.singleton ident v, v)
+    PAny -> do
+        v <- fresh
+        return (Map.empty, v)
+    PTuple pattern patterns ->
+        foldM (\(env, Prod l) p -> do 
+            (e, t) <- inferPattern expr p
+            ne <- concatEnv expr e env
+            return $ (ne, Prod (t: l)) ) (Map.empty, Prod []) (reverse $ pattern:patterns) 
+    PList patterns -> do
+        v <- fresh
+        l <- listT v
+        e <- foldM (\env p -> do
+            (e, t) <- inferPattern expr p
+            ne <- concatEnv expr e env
+            addCon v t
+            return ne) Map.empty patterns
+        return (e, l)
+    PString _ -> do 
+        l <- listT $ Con TChar 
+        return $ (Map.empty, l)
+    PListHT pattern1 pattern2 -> do
+        (e1, t1) <- inferPattern expr pattern1
+        (e2, t2) <- inferPattern expr pattern2
+        e3 <- concatEnv expr e1 e2
+        l <- listT t1
+        addCon l t2
+        return (e3, l)
+    PUnion n pattern 
+        | n <= 0 -> throwError $ WrongExpression expr
+        | otherwise -> do
+            l <- emptyUnion (n - 1)
+            (e, t) <- inferPattern expr pattern
+            if n == 1 then return (e, Union (t : l)) else return (e, Union $ l ++ [t])
 
 type Subst = Map TVar TAlg
 
