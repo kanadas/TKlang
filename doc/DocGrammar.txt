@@ -17,6 +17,7 @@ reserved words excluded.
 
 
 ===Literals===
+
 Integer literals //Integer// are nonempty sequences of digits.
 
 
@@ -27,7 +28,6 @@ Character literals //Char// have the form
 String literals //String// have the form
 ``"``//x//``"``}, where //x// is any sequence of any characters
 except ``"`` unless preceded by ``\``.
-
 
 
 
@@ -45,17 +45,18 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in Grammar are the following:
   | ``else`` | ``false`` | ``if`` | ``in``
-  | ``let`` | ``match`` | ``then`` | ``true``
-  | ``with`` |  |  | 
+  | ``initial`` | ``input`` | ``is`` | ``let``
+  | ``match`` | ``output`` | ``state`` | ``stream``
+  | ``then`` | ``true`` | ``type`` | ``with``
 
 The symbols used in Grammar are the following:
-  | () | [] | ! | (
-  | , | ) | [ | ]
-  | (\ | -> | * | /
-  | + | - | ++ | &
-  | | | : | @ | =
-  | { | } | :: | ;
-  | _ |  |  | 
+  | ; | :: | = | ()
+  | [] | ! | ( | ,
+  | ) | [ | ] | (\
+  | -> | * | / | +
+  | - | ++ | & | |
+  | : | @ | { | }
+  | _ | . |  | 
 
 ===Comments===
 Single-line comments begin with //, #.Multiple-line comments are  enclosed with /* and */.
@@ -66,10 +67,21 @@ The symbols -> (production),  **|**  (union)
 and **eps** (empty rule) belong to the BNF notation. 
 All other symbols are terminals.
 
+  | //Program// | -> | //[Top]// 
+  | //[Top]// | -> | //Top// 
+  |  |  **|**  | //Top// ``;`` //[Top]// 
+  | //Top// | -> | //VDecl// 
+  |  |  **|**  | //TDecl// 
+  |  |  **|**  | //Def// 
+  |  |  **|**  | //Stream// 
+  | //VDecl// | -> | //Ident// ``::`` //Type// 
+  | //TDecl// | -> | ``type`` //Ident// ``is`` //Type// 
+  | //Def// | -> | //Ident// //[Ident]// ``=`` //Expr// 
   | //Expr11// | -> | //Integer// 
   |  |  **|**  | //Char// 
   |  |  **|**  | //String// 
   |  |  **|**  | //Ident// 
+  |  |  **|**  | //QIdent// 
   |  |  **|**  | ``true`` 
   |  |  **|**  | ``false`` 
   |  |  **|**  | ``()`` 
@@ -132,6 +144,8 @@ All other symbols are terminals.
   |  |  **|**  | //Char// 
   |  |  **|**  | ``true`` 
   |  |  **|**  | ``false`` 
+  |  |  **|**  | ``[]`` 
+  |  |  **|**  | ``()`` 
   |  |  **|**  | ``(`` //Pattern// ``)`` 
   | //Pattern1// | -> | //Pattern1// ``:`` //Pattern2// 
   |  |  **|**  | //Pattern2// 
@@ -139,5 +153,15 @@ All other symbols are terminals.
   |  |  **|**  | //Pattern1// 
   | //[Pattern]// | -> | //Pattern// 
   |  |  **|**  | //Pattern// ``,`` //[Pattern]// 
+  | //QIdent// | -> | //Ident// ``.`` //Ident// 
+  | //SStmt// | -> | //VDecl// 
+  |  |  **|**  | //Def// 
+  | //Stream// | -> | ``stream`` //Ident// ``input`` //[VDecl]// ``state`` //[SStmt]// ``output`` //[SStmt]// ``initial`` //[Def]// 
+  | //[VDecl]// | -> | //VDecl// 
+  |  |  **|**  | //VDecl// ``,`` //[VDecl]// 
+  | //[SStmt]// | -> | //SStmt// 
+  |  |  **|**  | //SStmt// ``;`` //[SStmt]// 
+  | //[Def]// | -> | //Def// 
+  |  |  **|**  | //Def// ``,`` //[Def]// 
 
 

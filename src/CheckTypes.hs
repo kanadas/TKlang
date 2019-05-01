@@ -4,9 +4,10 @@
 module CheckTypes(
      TypeError
     ,TAlg
-    ,solveExp
+    ,solveExpr
     ,TBasic
     ,matchBasic
+    ,inferProgram
     ) where
 
 import AbsGrammar
@@ -21,17 +22,30 @@ import Control.Monad.RWS
 import Control.Monad.Except
 import Control.Monad.State
 
-data TypeError = Undefined Expr | TypeError [TAlg] [TAlg] [Expr] | WrongExpression Expr | UnboundVariable Ident | NotConcreteType TAlg | UnsupportedType Type | Bug String
+data TypeError = 
+      Undefined String 
+    | TypeError [TAlg] [TAlg] [Expr] 
+    | WrongExpression Expr 
+    | UnboundVariable Ident 
+    | NotConcreteType TAlg 
+    | UnsupportedType Type 
+    | UndefinedType Ident
+    | NotAStream Ident Expr
+    | NotStreamField Ident Ident Expr
+    | Bug String
 
 instance Show TypeError where
     show te = case te of
-        Undefined e -> "Undefined expression: " ++ (render $ prt 0 e)
+        Undefined e -> "Undefined expression: " ++ e
         TypeError t1 t2 [] -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 
         TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e)
         WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) ++ "\n" ++ show e
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
         NotConcreteType t -> "Not concrete type: " ++ show t
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
+        UndefinedType ident -> "Undefined type: " ++ show ident
+        NotAStream ident e -> show ident ++ " is not a stream in: " ++ (render $ prt 0 e)
+        NotStreamField id1 id2 e -> show id2 ++ " is not field of " ++ show id1 ++ " in: " ++ (render $ prt 0 e)
         Bug s -> "!!!BUG!!! " ++ s
 
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
@@ -52,12 +66,15 @@ matchBasic (Basic s) = case s of
     "bool" -> TBool
     "void" -> TVoid
 
+type Mapping = Map Ident TAlg
+
 data TAlg = Con TBasic 
         | Var TVar
         | Prod [TAlg] 
         | Union [TAlg]
         | Fun TAlg TAlg
         | Rec TVar TAlg --TVar needs to be fresh
+        | Stream [TAlg] Mapping
         deriving Eq
 
 instance Show TAlg where
@@ -69,9 +86,9 @@ instance Show TAlg where
         Fun a b -> show a ++ "->" ++ show b
         Rec v t -> "(" ++ show v ++ "." ++ show t ++ ")"
 
-type Env = Map Ident TAlg
+data Env = Env {venv :: Mapping, tenv :: Mapping, denv :: Mapping}
 
-type Constraint = (TAlg, TAlg, Expr) --To debug
+type Constraint = (TAlg, TAlg, Expr) 
 
 type Infer a = RWST Env [Constraint] Integer (Except TypeError) a
 
@@ -81,18 +98,38 @@ freshV = do
     put $ s + 1
     return $ TV $ s
 
---fresh :: Infer TAlg
 fresh :: (MonadState Integer m) => m TAlg
 fresh = Var <$> freshV 
 
-withVal :: Ident -> TAlg -> Infer a -> Infer a
-withVal ident t e = do
-    let nenv env = Map.insert ident t (Map.delete ident env)
-    local nenv e
+liftVal :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
+liftVal f (Env ve te de) = Env (f ve) te de
 
-getEnv :: Ident -> Infer TAlg
-getEnv ident = do
-    env <- ask
+liftType :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
+liftType f (Env ve te de) = Env ve (f te) de
+
+liftDecl :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
+liftDecl f (Env ve te de) = Env ve te (f de)
+
+insertVal :: Ident -> TAlg -> Infer Env
+insertVal ident t = asks $ liftVal (Map.insert ident t)
+
+insertDecl :: Ident -> TAlg -> Infer Env
+insertDecl ident t = asks $ liftDecl (Map.insert ident t)
+
+insertType :: Ident -> TAlg -> Infer Env
+insertType ident t = asks $ liftType (Map.insert ident t)
+
+withVal :: Ident -> TAlg -> Infer a -> Infer a
+withVal ident t e = local (liftVal (Map.insert ident t)) e
+
+--withType :: Ident -> TAlg -> Infer a -> Infer a
+--withType ident t e = do
+--    let nenv (Env env tenv) = Env env (Map.insert ident t tenv)
+--    local nenv e
+
+getEnv :: (Env -> Map Ident TAlg) -> Ident -> Infer TAlg
+getEnv f ident = do
+    env <- asks f
     case Map.lookup ident env of
         Just v -> return v
         Nothing -> throwError $ UnboundVariable ident
@@ -110,6 +147,78 @@ listT t = do
     v <- freshV
     return $ Rec v (Union [Prod [t, Var v], Con TVoid])
 
+inferProgram :: Program -> Infer ()
+inferProgram x = case x of
+    Prog tops -> do
+        env <- ask
+        foldM_ (\acc top -> local (\_ -> acc) (inferTop top)) env tops
+
+inferTop :: Top -> Infer Env
+inferTop x = case x of
+  TopVDecl vdecl -> inferVDecl vdecl
+  TopTDecl tdecl -> inferTDecl tdecl
+  TopDef def -> inferDef def
+  TopStream stream -> inferStream stream
+
+inferVDecl :: VDecl -> Infer Env
+inferVDecl x = case x of
+    DVDecl ident type_ -> do
+        t <- inferType type_
+        insertDecl ident t
+
+inferTDecl :: TDecl -> Infer Env
+inferTDecl x = case x of
+    DTDecl ident type_ -> do
+        t <- if recursiveType ident type_ then do
+                v <- freshV
+                t1 <- local (liftType (Map.insert ident (Var v))) (inferType type_)
+                return $ Rec v t1
+            else inferType type_
+        insertType ident t
+
+inferDef :: Def -> Infer Env
+inferDef x = case x of
+    DDef ident idents expr -> do
+        te <- asks denv
+        v <- case Map.lookup ident te of
+            Just t -> return t
+            Nothing -> fresh
+        t <- if idents == [] then withVal ident v $ solveExpr expr
+            else withVal ident v $ solveExpr (ELambda idents expr)
+        insertVal ident t
+
+inferSStmt :: SStmt -> Infer Env
+inferSStmt x = case x of
+    SDecl vdecl -> inferVDecl vdecl
+    SDef (DDef ident idents expr) -> do
+        te <- asks denv
+        v <- case Map.lookup ident te of
+            Just t -> return t
+            Nothing -> fresh
+        t <- if idents == [] then withVal ident v $ inferExpr expr
+            else withVal ident v $ inferExpr (ELambda idents expr)
+        insertVal ident t
+
+inferStream :: Stream -> Infer Env
+inferStream x = case x of
+    DStream ident vdecls sstmts1 sstmts2 defs -> do
+        (env, cons) <- censor (\_ -> []) $ listen $ do 
+            e0 <- ask
+            e1 <- foldM (\acc (DVDecl ident t) -> local (\_ -> acc) (inferType t) >>= insertVal ident) e0  vdecls
+            e2 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e1 sstmts1
+            e3 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e2 sstmts2
+            foldM (\acc def -> local (\_ -> acc) (inferSStmt (SDef def))) e3 defs
+        s <- get
+        sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
+        foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
+        let nenv = Map.map (apply sub) (venv env)
+        let l = foldr (\(DVDecl ident _) acc -> (nenv Map.! ident):acc) [] vdecls
+        let out = foldl (\acc sstmt -> case sstmt of {
+            SDef (DDef ident _ _) -> Map.insert ident (nenv Map.! ident) acc;
+            _ -> acc}) Map.empty sstmts2
+        insertVal ident (Stream l out)
+
+
 inferExpr :: Expr -> Infer TAlg
 inferExpr x = 
     let addCon a b = tell [(a, b, x)] in
@@ -117,7 +226,14 @@ inferExpr x =
         EInt _ -> return $ Con TInt
         EChar _ -> return $ Con TChar
         EString _ -> listT $ Con TChar
-        EIdent ident -> getEnv ident
+        EIdent ident -> getEnv venv ident
+        EQual (Qual id1 id2) -> do
+            v <- getEnv venv id1
+            case v of
+                Stream _ out -> case Map.lookup id2 out of
+                    Just t -> return t
+                    Nothing -> throwError $ NotStreamField id1 id2 x
+                _ -> throwError $ NotAStream id1 x
         ETrue -> return $ Con TBool
         EFalse -> return $ Con TBool
         EVoid -> return $ Con TVoid
@@ -242,11 +358,24 @@ inferExpr x =
             addCon t1 t2
             return t2
 
+recursiveType :: Ident -> Type -> Bool
+recursiveType ident x = case x of
+    TBasic _ -> False
+    TIdent ident2 -> ident == ident2
+    TProduct t1 t2 -> recursiveType ident t1 || recursiveType ident t2
+    TUnion t1 t2 -> recursiveType ident t1 || recursiveType ident t2
+    TFun t1 t2 -> recursiveType ident t1 || recursiveType ident t2
+    TList t -> recursiveType ident t
+
 --Assuming parsing is left-recursive
 inferType :: Type -> Infer TAlg
 inferType x = case x of
     TBasic basic -> return $ Con $ matchBasic basic
-    TIdent ident -> throwError $ UnsupportedType x
+    TIdent ident -> do
+        s <- asks tenv
+        case Map.lookup ident s of
+            Just v -> return $ v
+            Nothing -> throwError $ UndefinedType ident
     TProduct type_1 type_2 -> do 
         t1 <- inferType type_1
         t2 <- inferType type_2
@@ -269,14 +398,14 @@ inferAlternative :: Alternative -> Infer (TAlg, TAlg)
 inferAlternative x = case x of
     MAlternative pattern expr -> do
         (e, t1) <- inferPattern expr pattern
-        t2 <- local (Map.union e) (inferExpr expr)
+        t2 <- local (liftVal (Map.union e)) (inferExpr expr)
         return (t1, t2)
 
-concatEnv :: Expr -> Env -> Env -> Infer Env
+concatEnv :: Expr -> Map Ident TAlg -> Map Ident TAlg -> Infer (Map Ident TAlg)
 concatEnv e e1 e2 = 
     sequence (Map.intersectionWith (\a b -> tell [(a, b, e)]) e1 e2) >> (return $ Map.union e1 e2)
 
-inferPattern :: Expr -> Pattern -> Infer (Env, TAlg)
+inferPattern :: Expr -> Pattern -> Infer (Map Ident TAlg, TAlg)
 inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
     PIdent ident -> do
         v <- fresh
@@ -305,7 +434,11 @@ inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
     PChar _ -> return (Map.empty, Con TChar)
     PTrue -> return (Map.empty, Con TBool)
     PFalse -> return (Map.empty, Con TBool)
-    --PVoid -> return (Map.empty, Con TVoid)
+    PVoid -> return (Map.empty, Con TVoid)
+    PEmpty -> do
+        v <- fresh
+        l <- listT v
+        return (Map.empty, l)
     PListHT pattern1 pattern2 -> do
         (e1, t1) <- inferPattern expr pattern1
         (e2, t2) <- inferPattern expr pattern2
@@ -334,6 +467,7 @@ instance Substitutable TAlg where
     apply s (Prod l) = Prod $ apply s l
     apply s (Union l) = Union $ apply s l
     apply s (Fun t1 t2) = Fun (apply s t1) (apply s t2)
+    apply s (Stream l o) = Stream (apply s l) (apply s o)
     apply s (Rec x t) = Rec x (apply s t)
 
     ftv (Con _) = Set.empty
@@ -341,9 +475,14 @@ instance Substitutable TAlg where
     ftv (Prod l) = ftv l
     ftv (Union l) = ftv l
     ftv (Fun t1 t2) = Set.union (ftv t1) (ftv t2)
+    ftv (Stream l o) = Set.union (ftv l) (ftv o)
     ftv (Rec v t) = Set.delete v (ftv t)
 
 instance Substitutable a => Substitutable [a] where
+    apply = fmap . apply
+    ftv = foldr (Set.union . ftv) Set.empty
+
+instance Substitutable a => Substitutable (Map b a) where
     apply = fmap . apply
     ftv = foldr (Set.union . ftv) Set.empty
 
@@ -386,10 +525,11 @@ occursCheck a t = a `Set.member` ftv t
 concreteType :: TAlg -> Bool
 concreteType = Set.null . ftv
 
-solveExp :: Expr -> Except TypeError ()
-solveExp expr = do
-    (s, cons) <- execRWST (inferExpr expr) Map.empty 0
-    sub <- evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
+solveExpr :: Expr -> Infer TAlg
+solveExpr expr = do
+    (v, cons) <- censor (\_ -> []) $ listen $ inferExpr expr 
+    s <- get
+    sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
     foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
-
+    return $ apply sub v
 

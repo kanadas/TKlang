@@ -1,9 +1,22 @@
-entrypoints Expr;
+entrypoints Program;
+
+Prog.           Program ::= [Top] ;
+separator nonempty Top ";" ;
+
+TopVDecl.       Top ::= VDecl ;
+TopTDecl.       Top ::= TDecl ;
+TopDef.         Top ::= Def ;
+TopStream.      Top ::= Stream ;
+
+DVDecl.         VDecl ::= Ident "::" Type ;
+DTDecl.         TDecl ::= "type" Ident "is" Type ;
+DDef.           Def   ::= Ident [Ident] "=" Expr ;
 
 EInt.           Expr11 ::= Integer;
 EChar.          Expr11 ::= Char;
-EString.        Expr11 ::= String ;
+EString.        Expr11 ::= String;
 EIdent.         Expr11 ::= Ident;
+EQual.          Expr11 ::= QIdent;
 ETrue.          Expr11 ::= "true";
 EFalse.         Expr11 ::= "false";
 EVoid.          Expr11 ::= "()";
@@ -57,15 +70,23 @@ PInt.           Pattern2 ::= Integer ;
 PChar.          Pattern2 ::= Char ;
 PTrue.          Pattern2 ::= "true" ;
 PFalse.         Pattern2 ::= "false" ;
---PEmpty.         Pattern2 ::= "[]" ; TODO
---PVoid.          Pattern2 ::= "()" ; TODO
+PEmpty.         Pattern2 ::= "[]" ;
+PVoid.          Pattern2 ::= "()" ;
 PListHT.        Pattern1 ::= Pattern1 ":" Pattern2 ;
 PUnion.         Pattern ::= Integer "@" Pattern ;
 coercions Pattern 2 ;
 
 separator nonempty Pattern "," ;
 
---Qual.           QIdent ::= Ident "." Ident ;
+Qual.           QIdent ::= Ident "." Ident ;
+
+SDecl.          SStmt ::= VDecl ;
+SDef.           SStmt ::= Def ;
+
+DStream.        Stream ::= "stream" Ident "input" [VDecl] "state" [SStmt] "output" [SStmt] "initial" [Def] ;
+separator nonempty VDecl "," ;
+separator nonempty SStmt ";" ;
+separator nonempty Def "," ;
 
 comment "//" ;
 comment "/*" "*/" ;

@@ -95,12 +95,45 @@ instance Print RelOp where
 instance Print Basic where
   prt _ (Basic i) = doc (showString i)
 
+instance Print Program where
+  prt i e = case e of
+    Prog tops -> prPrec i 0 (concatD [prt 0 tops])
+
+instance Print [Top] where
+  prt = prtList
+
+instance Print Top where
+  prt i e = case e of
+    TopVDecl vdecl -> prPrec i 0 (concatD [prt 0 vdecl])
+    TopTDecl tdecl -> prPrec i 0 (concatD [prt 0 tdecl])
+    TopDef def -> prPrec i 0 (concatD [prt 0 def])
+    TopStream stream -> prPrec i 0 (concatD [prt 0 stream])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ";"), prt 0 xs]
+
+instance Print VDecl where
+  prt i e = case e of
+    DVDecl id type_ -> prPrec i 0 (concatD [prt 0 id, doc (showString "::"), prt 0 type_])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
+
+instance Print TDecl where
+  prt i e = case e of
+    DTDecl id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "is"), prt 0 type_])
+
+instance Print Def where
+  prt i e = case e of
+    DDef id ids expr -> prPrec i 0 (concatD [prt 0 id, prt 0 ids, doc (showString "="), prt 0 expr])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
+
 instance Print Expr where
   prt i e = case e of
     EInt n -> prPrec i 11 (concatD [prt 0 n])
     EChar c -> prPrec i 11 (concatD [prt 0 c])
     EString str -> prPrec i 11 (concatD [prt 0 str])
     EIdent id -> prPrec i 11 (concatD [prt 0 id])
+    EQual qident -> prPrec i 11 (concatD [prt 0 qident])
     ETrue -> prPrec i 11 (concatD [doc (showString "true")])
     EFalse -> prPrec i 11 (concatD [doc (showString "false")])
     EVoid -> prPrec i 11 (concatD [doc (showString "()")])
@@ -163,11 +196,37 @@ instance Print Pattern where
     PChar c -> prPrec i 2 (concatD [prt 0 c])
     PTrue -> prPrec i 2 (concatD [doc (showString "true")])
     PFalse -> prPrec i 2 (concatD [doc (showString "false")])
+    PEmpty -> prPrec i 2 (concatD [doc (showString "[]")])
+    PVoid -> prPrec i 2 (concatD [doc (showString "()")])
     PListHT pattern1 pattern2 -> prPrec i 1 (concatD [prt 1 pattern1, doc (showString ":"), prt 2 pattern2])
     PUnion n pattern -> prPrec i 0 (concatD [prt 0 n, doc (showString "@"), prt 0 pattern])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
 
 instance Print [Pattern] where
+  prt = prtList
+
+instance Print QIdent where
+  prt i e = case e of
+    Qual id1 id2 -> prPrec i 0 (concatD [prt 0 id1, doc (showString "."), prt 0 id2])
+
+instance Print SStmt where
+  prt i e = case e of
+    SDecl vdecl -> prPrec i 0 (concatD [prt 0 vdecl])
+    SDef def -> prPrec i 0 (concatD [prt 0 def])
+  prtList _ [x] = concatD [prt 0 x]
+  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ";"), prt 0 xs]
+
+instance Print Stream where
+  prt i e = case e of
+    DStream id vdecls sstmts1 sstmts2 defs -> prPrec i 0 (concatD [doc (showString "stream"), prt 0 id, doc (showString "input"), prt 0 vdecls, doc (showString "state"), prt 0 sstmts1, doc (showString "output"), prt 0 sstmts2, doc (showString "initial"), prt 0 defs])
+
+instance Print [VDecl] where
+  prt = prtList
+
+instance Print [SStmt] where
+  prt = prtList
+
+instance Print [Def] where
   prt = prtList
 

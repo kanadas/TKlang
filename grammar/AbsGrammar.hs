@@ -10,11 +10,28 @@ module AbsGrammar where
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 newtype RelOp = RelOp String deriving (Eq, Ord, Show, Read)
 newtype Basic = Basic String deriving (Eq, Ord, Show, Read)
+data Program = Prog [Top]
+  deriving (Eq, Ord, Show, Read)
+
+data Top
+    = TopVDecl VDecl | TopTDecl TDecl | TopDef Def | TopStream Stream
+  deriving (Eq, Ord, Show, Read)
+
+data VDecl = DVDecl Ident Type
+  deriving (Eq, Ord, Show, Read)
+
+data TDecl = DTDecl Ident Type
+  deriving (Eq, Ord, Show, Read)
+
+data Def = DDef Ident [Ident] Expr
+  deriving (Eq, Ord, Show, Read)
+
 data Expr
     = EInt Integer
     | EChar Char
     | EString String
     | EIdent Ident
+    | EQual QIdent
     | ETrue
     | EFalse
     | EVoid
@@ -63,7 +80,18 @@ data Pattern
     | PChar Char
     | PTrue
     | PFalse
+    | PEmpty
+    | PVoid
     | PListHT Pattern Pattern
     | PUnion Integer Pattern
+  deriving (Eq, Ord, Show, Read)
+
+data QIdent = Qual Ident Ident
+  deriving (Eq, Ord, Show, Read)
+
+data SStmt = SDecl VDecl | SDef Def
+  deriving (Eq, Ord, Show, Read)
+
+data Stream = DStream Ident [VDecl] [SStmt] [SStmt] [Def]
   deriving (Eq, Ord, Show, Read)
 

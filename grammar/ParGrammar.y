@@ -8,7 +8,7 @@ import ErrM
 
 }
 
-%name pExpr Expr
+%name pProgram Program
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
@@ -25,51 +25,75 @@ import ErrM
   ',' { PT _ (TS _ 10) }
   '-' { PT _ (TS _ 11) }
   '->' { PT _ (TS _ 12) }
-  '/' { PT _ (TS _ 13) }
-  ':' { PT _ (TS _ 14) }
-  '::' { PT _ (TS _ 15) }
-  ';' { PT _ (TS _ 16) }
-  '=' { PT _ (TS _ 17) }
-  '@' { PT _ (TS _ 18) }
-  '[' { PT _ (TS _ 19) }
-  '[]' { PT _ (TS _ 20) }
-  ']' { PT _ (TS _ 21) }
-  '_' { PT _ (TS _ 22) }
-  'else' { PT _ (TS _ 23) }
-  'false' { PT _ (TS _ 24) }
-  'if' { PT _ (TS _ 25) }
-  'in' { PT _ (TS _ 26) }
-  'let' { PT _ (TS _ 27) }
-  'match' { PT _ (TS _ 28) }
-  'then' { PT _ (TS _ 29) }
-  'true' { PT _ (TS _ 30) }
-  'with' { PT _ (TS _ 31) }
-  '{' { PT _ (TS _ 32) }
-  '|' { PT _ (TS _ 33) }
-  '}' { PT _ (TS _ 34) }
+  '.' { PT _ (TS _ 13) }
+  '/' { PT _ (TS _ 14) }
+  ':' { PT _ (TS _ 15) }
+  '::' { PT _ (TS _ 16) }
+  ';' { PT _ (TS _ 17) }
+  '=' { PT _ (TS _ 18) }
+  '@' { PT _ (TS _ 19) }
+  '[' { PT _ (TS _ 20) }
+  '[]' { PT _ (TS _ 21) }
+  ']' { PT _ (TS _ 22) }
+  '_' { PT _ (TS _ 23) }
+  'else' { PT _ (TS _ 24) }
+  'false' { PT _ (TS _ 25) }
+  'if' { PT _ (TS _ 26) }
+  'in' { PT _ (TS _ 27) }
+  'initial' { PT _ (TS _ 28) }
+  'input' { PT _ (TS _ 29) }
+  'is' { PT _ (TS _ 30) }
+  'let' { PT _ (TS _ 31) }
+  'match' { PT _ (TS _ 32) }
+  'output' { PT _ (TS _ 33) }
+  'state' { PT _ (TS _ 34) }
+  'stream' { PT _ (TS _ 35) }
+  'then' { PT _ (TS _ 36) }
+  'true' { PT _ (TS _ 37) }
+  'type' { PT _ (TS _ 38) }
+  'with' { PT _ (TS _ 39) }
+  '{' { PT _ (TS _ 40) }
+  '|' { PT _ (TS _ 41) }
+  '}' { PT _ (TS _ 42) }
 
+L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
 L_charac { PT _ (TC $$) }
 L_quoted { PT _ (TL $$) }
-L_ident  { PT _ (TV $$) }
 L_RelOp { PT _ (T_RelOp $$) }
 L_Basic { PT _ (T_Basic $$) }
 
 
 %%
 
+Ident   :: { Ident }   : L_ident  { Ident $1 }
 Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
 Char    :: { Char }    : L_charac { (read ( $1)) :: Char }
 String  :: { String }  : L_quoted {  $1 }
-Ident   :: { Ident }   : L_ident  { Ident $1 }
 RelOp    :: { RelOp} : L_RelOp { RelOp ($1)}
 Basic    :: { Basic} : L_Basic { Basic ($1)}
 
+Program :: { Program }
+Program : ListTop { AbsGrammar.Prog $1 }
+ListTop :: { [Top] }
+ListTop : Top { (:[]) $1 } | Top ';' ListTop { (:) $1 $3 }
+Top :: { Top }
+Top : VDecl { AbsGrammar.TopVDecl $1 }
+    | TDecl { AbsGrammar.TopTDecl $1 }
+    | Def { AbsGrammar.TopDef $1 }
+    | Stream { AbsGrammar.TopStream $1 }
+VDecl :: { VDecl }
+VDecl : Ident '::' Type { AbsGrammar.DVDecl $1 $3 }
+TDecl :: { TDecl }
+TDecl : 'type' Ident 'is' Type { AbsGrammar.DTDecl $2 $4 }
+Def :: { Def }
+Def : Ident ListIdent '=' Expr { AbsGrammar.DDef $1 $2 $4 }
 Expr11 :: { Expr }
 Expr11 : Integer { AbsGrammar.EInt $1 }
        | Char { AbsGrammar.EChar $1 }
        | String { AbsGrammar.EString $1 }
        | Ident { AbsGrammar.EIdent $1 }
+       | QIdent { AbsGrammar.EQual $1 }
        | 'true' { AbsGrammar.ETrue }
        | 'false' { AbsGrammar.EFalse }
        | '()' { AbsGrammar.EVoid }
@@ -142,6 +166,8 @@ Pattern2 : Ident { AbsGrammar.PIdent $1 }
          | Char { AbsGrammar.PChar $1 }
          | 'true' { AbsGrammar.PTrue }
          | 'false' { AbsGrammar.PFalse }
+         | '[]' { AbsGrammar.PEmpty }
+         | '()' { AbsGrammar.PVoid }
          | '(' Pattern ')' { $2 }
 Pattern1 :: { Pattern }
 Pattern1 : Pattern1 ':' Pattern2 { AbsGrammar.PListHT $1 $3 }
@@ -152,6 +178,18 @@ Pattern : Integer '@' Pattern { AbsGrammar.PUnion $1 $3 }
 ListPattern :: { [Pattern] }
 ListPattern : Pattern { (:[]) $1 }
             | Pattern ',' ListPattern { (:) $1 $3 }
+QIdent :: { QIdent }
+QIdent : Ident '.' Ident { AbsGrammar.Qual $1 $3 }
+SStmt :: { SStmt }
+SStmt : VDecl { AbsGrammar.SDecl $1 } | Def { AbsGrammar.SDef $1 }
+Stream :: { Stream }
+Stream : 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef { AbsGrammar.DStream $2 $4 $6 $8 $10 }
+ListVDecl :: { [VDecl] }
+ListVDecl : VDecl { (:[]) $1 } | VDecl ',' ListVDecl { (:) $1 $3 }
+ListSStmt :: { [SStmt] }
+ListSStmt : SStmt { (:[]) $1 } | SStmt ';' ListSStmt { (:) $1 $3 }
+ListDef :: { [Def] }
+ListDef : Def { (:[]) $1 } | Def ',' ListDef { (:) $1 $3 }
 {
 
 returnM :: a -> Err a
