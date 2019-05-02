@@ -102,13 +102,11 @@ Grammar
 	QIdent -> Ident '.' Ident                          (93)
 	SStmt -> VDecl                                     (94)
 	SStmt -> Def                                       (95)
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef   (96)
-	ListVDecl -> VDecl                                 (97)
-	ListVDecl -> VDecl ',' ListVDecl                   (98)
-	ListSStmt -> SStmt                                 (99)
-	ListSStmt -> SStmt ';' ListSStmt                   (100)
-	ListDef -> Def                                     (101)
-	ListDef -> Def ',' ListDef                         (102)
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef   (96)
+	ListSStmt -> SStmt                                 (97)
+	ListSStmt -> SStmt ';' ListSStmt                   (98)
+	ListDef -> Def                                     (99)
+	ListDef -> Def ',' ListDef                         (100)
 
 -----------------------------------------------------------------------------
 Terminals
@@ -205,9 +203,8 @@ Non-terminals
 	QIdent          rule  93
 	SStmt           rules 94, 95
 	Stream          rule  96
-	ListVDecl       rules 97, 98
-	ListSStmt       rules 99, 100
-	ListDef         rules 101, 102
+	ListSStmt       rules 97, 98
+	ListDef         rules 99, 100
 
 -----------------------------------------------------------------------------
 States
@@ -349,7 +346,7 @@ State 10
 
 State 11
 
-	Stream -> 'stream' . Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
+	Stream -> 'stream' . Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
 
 	L_ident        shift, and enter state 2
 
@@ -372,7 +369,7 @@ State 13
 
 State 14
 
-	Stream -> 'stream' Ident . 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
+	Stream -> 'stream' Ident . 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
 
 	'input'        shift, and enter state 31
 
@@ -399,6 +396,7 @@ State 16
 
 	'->'           reduce using rule 60
 	'='            reduce using rule 60
+	'state'        reduce using rule 60
 	L_ident        shift, and enter state 2
 
 	Ident          goto state 16
@@ -442,7 +440,6 @@ State 19
 	'in'           reduce using rule 63
 	'initial'      reduce using rule 63
 	'output'       reduce using rule 63
-	'state'        reduce using rule 63
 	'then'         reduce using rule 63
 	'with'         reduce using rule 63
 	'}'            reduce using rule 63
@@ -464,7 +461,6 @@ State 20
 	'in'           reduce using rule 62
 	'initial'      reduce using rule 62
 	'output'       reduce using rule 62
-	'state'        reduce using rule 62
 	'then'         reduce using rule 62
 	'with'         reduce using rule 62
 	'}'            reduce using rule 62
@@ -486,7 +482,6 @@ State 21
 	'in'           reduce using rule 67
 	'initial'      reduce using rule 67
 	'output'       reduce using rule 67
-	'state'        reduce using rule 67
 	'then'         reduce using rule 67
 	'with'         reduce using rule 67
 	'}'            reduce using rule 67
@@ -499,7 +494,7 @@ State 22
 	Type1 -> Type2 .                                    (rule 69)
 
 	')'            reduce using rule 69
-	'*'            shift, and enter state 73
+	'*'            shift, and enter state 71
 	'+'            reduce using rule 69
 	','            reduce using rule 69
 	'->'           reduce using rule 69
@@ -509,7 +504,6 @@ State 22
 	'in'           reduce using rule 69
 	'initial'      reduce using rule 69
 	'output'       reduce using rule 69
-	'state'        reduce using rule 69
 	'then'         reduce using rule 69
 	'with'         reduce using rule 69
 	'}'            reduce using rule 69
@@ -523,16 +517,15 @@ State 23
 	Type -> Type1 .                                     (rule 71)
 
 	')'            reduce using rule 71
-	'+'            shift, and enter state 71
+	'+'            shift, and enter state 69
 	','            reduce using rule 71
-	'->'           shift, and enter state 72
+	'->'           shift, and enter state 70
 	';'            reduce using rule 71
 	']'            reduce using rule 71
 	'else'         reduce using rule 71
 	'in'           reduce using rule 71
 	'initial'      reduce using rule 71
 	'output'       reduce using rule 71
-	'state'        reduce using rule 71
 	'then'         reduce using rule 71
 	'with'         reduce using rule 71
 	'}'            reduce using rule 71
@@ -543,11 +536,9 @@ State 24
 
 	VDecl -> Ident '::' Type .                          (rule 14)
 
-	','            reduce using rule 14
 	';'            reduce using rule 14
 	'initial'      reduce using rule 14
 	'output'       reduce using rule 14
-	'state'        reduce using rule 14
 	%eof           reduce using rule 14
 
 
@@ -565,7 +556,7 @@ State 25
 	Type3          goto state 21
 	Type2          goto state 22
 	Type1          goto state 23
-	Type           goto state 70
+	Type           goto state 68
 
 State 26
 
@@ -581,7 +572,7 @@ State 26
 	Type3          goto state 21
 	Type2          goto state 22
 	Type1          goto state 23
-	Type           goto state 69
+	Type           goto state 67
 
 State 27
 
@@ -598,7 +589,6 @@ State 27
 	'in'           reduce using rule 6
 	'initial'      reduce using rule 6
 	'output'       reduce using rule 6
-	'state'        reduce using rule 6
 	'then'         reduce using rule 6
 	'with'         reduce using rule 6
 	'}'            reduce using rule 6
@@ -609,40 +599,40 @@ State 28
 
 	Def -> Ident ListIdent '=' . Expr                   (rule 16)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 52
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 50
+	QIdent         goto state 51
 
 State 29
 
@@ -650,6 +640,7 @@ State 29
 
 	'->'           reduce using rule 61
 	'='            reduce using rule 61
+	'state'        reduce using rule 61
 
 
 State 30
@@ -661,13 +652,13 @@ State 30
 
 State 31
 
-	Stream -> 'stream' Ident 'input' . ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
+	Stream -> 'stream' Ident 'input' . ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
 
+	'state'        reduce using rule 60
 	L_ident        shift, and enter state 2
 
-	Ident          goto state 34
-	VDecl          goto state 35
-	ListVDecl      goto state 36
+	Ident          goto state 16
+	ListIdent      goto state 34
 
 State 32
 
@@ -695,28 +686,12 @@ State 33
 
 State 34
 
-	VDecl -> Ident . '::' Type                          (rule 14)
+	Stream -> 'stream' Ident 'input' ListIdent . 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
 
-	'::'           shift, and enter state 18
+	'state'        shift, and enter state 101
 
 
 State 35
-
-	ListVDecl -> VDecl .                                (rule 97)
-	ListVDecl -> VDecl . ',' ListVDecl                  (rule 98)
-
-	','            shift, and enter state 104
-	'state'        reduce using rule 97
-
-
-State 36
-
-	Stream -> 'stream' Ident 'input' ListVDecl . 'state' ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
-
-	'state'        shift, and enter state 103
-
-
-State 37
 
 	Expr11 -> Ident .                                   (rule 20)
 	QIdent -> Ident . '.' Ident                         (rule 93)
@@ -732,7 +707,7 @@ State 37
 	'++'           reduce using rule 20
 	','            reduce using rule 20
 	'-'            reduce using rule 20
-	'.'            shift, and enter state 102
+	'.'            shift, and enter state 100
 	'/'            reduce using rule 20
 	':'            reduce using rule 20
 	'::'           reduce using rule 20
@@ -758,7 +733,7 @@ State 37
 	%eof           reduce using rule 20
 
 
-State 38
+State 36
 
 	Expr11 -> Integer .                                 (rule 17)
 	Expr2 -> Integer . '@' Expr3                        (rule 50)
@@ -778,7 +753,7 @@ State 38
 	':'            reduce using rule 17
 	'::'           reduce using rule 17
 	';'            reduce using rule 17
-	'@'            shift, and enter state 101
+	'@'            shift, and enter state 99
 	'['            reduce using rule 17
 	'[]'           reduce using rule 17
 	']'            reduce using rule 17
@@ -800,7 +775,7 @@ State 38
 	%eof           reduce using rule 17
 
 
-State 39
+State 37
 
 	Expr11 -> Char .                                    (rule 18)
 
@@ -840,7 +815,7 @@ State 39
 	%eof           reduce using rule 18
 
 
-State 40
+State 38
 
 	Expr11 -> String .                                  (rule 19)
 
@@ -880,7 +855,7 @@ State 40
 	%eof           reduce using rule 19
 
 
-State 41
+State 39
 
 	Expr10 -> Expr11 .                                  (rule 32)
 
@@ -920,16 +895,16 @@ State 41
 	%eof           reduce using rule 32
 
 
-State 42
+State 40
 
 	Expr10 -> Expr10 . Expr11                           (rule 31)
 	Expr9 -> Expr10 .                                   (rule 35)
 
-	'!'            shift, and enter state 54
+	'!'            shift, and enter state 52
 	'&'            reduce using rule 35
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
 	')'            reduce using rule 35
 	'*'            reduce using rule 35
 	'+'            reduce using rule 35
@@ -940,34 +915,34 @@ State 42
 	':'            reduce using rule 35
 	'::'           reduce using rule 35
 	';'            reduce using rule 35
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
 	']'            reduce using rule 35
 	'else'         reduce using rule 35
-	'false'        shift, and enter state 61
+	'false'        shift, and enter state 59
 	'in'           reduce using rule 35
 	'initial'      reduce using rule 35
 	'output'       reduce using rule 35
 	'then'         reduce using rule 35
-	'true'         shift, and enter state 65
+	'true'         shift, and enter state 63
 	'with'         reduce using rule 35
 	'|'            reduce using rule 35
 	'}'            reduce using rule 35
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 	L_RelOp        reduce using rule 35
 	%eof           reduce using rule 35
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 100
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 98
+	QIdent         goto state 51
 
-State 43
+State 41
 
 	Expr9 -> Expr9 . '*' Expr10                         (rule 33)
 	Expr9 -> Expr9 . '/' Expr10                         (rule 34)
@@ -975,12 +950,12 @@ State 43
 
 	'&'            reduce using rule 39
 	')'            reduce using rule 39
-	'*'            shift, and enter state 98
+	'*'            shift, and enter state 96
 	'+'            reduce using rule 39
 	'++'           reduce using rule 39
 	','            reduce using rule 39
 	'-'            reduce using rule 39
-	'/'            shift, and enter state 99
+	'/'            shift, and enter state 97
 	':'            reduce using rule 39
 	'::'           reduce using rule 39
 	';'            reduce using rule 39
@@ -997,7 +972,7 @@ State 43
 	%eof           reduce using rule 39
 
 
-State 44
+State 42
 
 	Expr8 -> Expr8 . '+' Expr9                          (rule 36)
 	Expr8 -> Expr8 . '-' Expr9                          (rule 37)
@@ -1006,10 +981,10 @@ State 44
 
 	'&'            reduce using rule 41
 	')'            reduce using rule 41
-	'+'            shift, and enter state 95
-	'++'           shift, and enter state 96
+	'+'            shift, and enter state 93
+	'++'           shift, and enter state 94
 	','            reduce using rule 41
-	'-'            shift, and enter state 97
+	'-'            shift, and enter state 95
 	':'            reduce using rule 41
 	'::'           reduce using rule 41
 	';'            reduce using rule 41
@@ -1026,7 +1001,7 @@ State 44
 	%eof           reduce using rule 41
 
 
-State 45
+State 43
 
 	Expr6 -> Expr7 .                                    (rule 43)
 
@@ -1049,7 +1024,7 @@ State 45
 	%eof           reduce using rule 43
 
 
-State 46
+State 44
 
 	Expr6 -> Expr6 . RelOp Expr7                        (rule 42)
 	Expr5 -> Expr6 .                                    (rule 45)
@@ -1069,17 +1044,17 @@ State 46
 	'with'         reduce using rule 45
 	'|'            reduce using rule 45
 	'}'            reduce using rule 45
-	L_RelOp        shift, and enter state 94
+	L_RelOp        shift, and enter state 92
 	%eof           reduce using rule 45
 
-	RelOp          goto state 93
+	RelOp          goto state 91
 
-State 47
+State 45
 
 	Expr5 -> Expr5 . '&' Expr6                          (rule 44)
 	Expr4 -> Expr5 .                                    (rule 47)
 
-	'&'            shift, and enter state 92
+	'&'            shift, and enter state 90
 	')'            reduce using rule 47
 	','            reduce using rule 47
 	':'            reduce using rule 47
@@ -1097,7 +1072,7 @@ State 47
 	%eof           reduce using rule 47
 
 
-State 48
+State 46
 
 	Expr4 -> Expr4 . '|' Expr5                          (rule 46)
 	Expr3 -> Expr4 .                                    (rule 49)
@@ -1114,19 +1089,19 @@ State 48
 	'output'       reduce using rule 49
 	'then'         reduce using rule 49
 	'with'         reduce using rule 49
-	'|'            shift, and enter state 91
+	'|'            shift, and enter state 89
 	'}'            reduce using rule 49
 	%eof           reduce using rule 49
 
 
-State 49
+State 47
 
 	Expr3 -> Expr3 . ':' Expr4                          (rule 48)
 	Expr2 -> Expr3 .                                    (rule 51)
 
 	')'            reduce using rule 51
 	','            reduce using rule 51
-	':'            shift, and enter state 90
+	':'            shift, and enter state 88
 	'::'           reduce using rule 51
 	';'            reduce using rule 51
 	']'            reduce using rule 51
@@ -1140,7 +1115,7 @@ State 49
 	%eof           reduce using rule 51
 
 
-State 50
+State 48
 
 	Expr1 -> Expr2 .                                    (rule 55)
 
@@ -1159,14 +1134,14 @@ State 50
 	%eof           reduce using rule 55
 
 
-State 51
+State 49
 
 	Expr -> Expr1 . '::' Type                           (rule 56)
 	Expr -> Expr1 .                                     (rule 57)
 
 	')'            reduce using rule 57
 	','            reduce using rule 57
-	'::'           shift, and enter state 89
+	'::'           shift, and enter state 87
 	';'            reduce using rule 57
 	']'            reduce using rule 57
 	'else'         reduce using rule 57
@@ -1179,7 +1154,7 @@ State 51
 	%eof           reduce using rule 57
 
 
-State 52
+State 50
 
 	Def -> Ident ListIdent '=' Expr .                   (rule 16)
 
@@ -1190,7 +1165,7 @@ State 52
 	%eof           reduce using rule 16
 
 
-State 53
+State 51
 
 	Expr11 -> QIdent .                                  (rule 21)
 
@@ -1230,71 +1205,71 @@ State 53
 	%eof           reduce using rule 21
 
 
-State 54
+State 52
 
 	Expr11 -> '!' . Expr11                              (rule 26)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 88
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 86
+	QIdent         goto state 51
 
-State 55
+State 53
 
 	Expr11 -> '(' . Expr ',' ListExpr ')'               (rule 27)
 	Expr11 -> '(' . Expr ')'                            (rule 30)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 87
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 85
+	QIdent         goto state 51
 
-State 56
+State 54
 
 	Expr11 -> '()' .                                    (rule 24)
 
@@ -1334,7 +1309,7 @@ State 56
 	%eof           reduce using rule 24
 
 
-State 57
+State 55
 
 	Expr11 -> '(\\' . ListIdent '->' Expr ')'           (rule 29)
 
@@ -1342,78 +1317,78 @@ State 57
 	L_ident        shift, and enter state 2
 
 	Ident          goto state 16
-	ListIdent      goto state 86
+	ListIdent      goto state 84
 
-State 58
+State 56
 
 	Expr7 -> '-' . Expr7                                (rule 40)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 85
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 83
+	QIdent         goto state 51
 
-State 59
+State 57
 
 	Expr11 -> '[' . ListExpr ']'                        (rule 28)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 82
-	ListExpr       goto state 83
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 80
+	ListExpr       goto state 81
+	QIdent         goto state 51
 
-State 60
+State 58
 
 	Expr11 -> '[]' .                                    (rule 25)
 
@@ -1453,7 +1428,7 @@ State 60
 	%eof           reduce using rule 25
 
 
-State 61
+State 59
 
 	Expr11 -> 'false' .                                 (rule 23)
 
@@ -1493,93 +1468,93 @@ State 61
 	%eof           reduce using rule 23
 
 
-State 62
+State 60
 
 	Expr1 -> 'if' . Expr 'then' Expr 'else' Expr1       (rule 52)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 81
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 79
+	QIdent         goto state 51
 
-State 63
+State 61
 
 	Expr1 -> 'let' . Ident '=' Expr 'in' Expr1          (rule 53)
 
 	L_ident        shift, and enter state 2
 
-	Ident          goto state 80
+	Ident          goto state 78
 
-State 64
+State 62
 
 	Expr1 -> 'match' . Expr 'with' '{' ListAlternative '}'    (rule 54)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 79
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 77
+	QIdent         goto state 51
 
-State 65
+State 63
 
 	Expr11 -> 'true' .                                  (rule 22)
 
@@ -1619,7 +1594,7 @@ State 65
 	%eof           reduce using rule 22
 
 
-State 66
+State 64
 
 	Integer -> L_integ .                                (rule 2)
 
@@ -1661,7 +1636,7 @@ State 66
 	%eof           reduce using rule 2
 
 
-State 67
+State 65
 
 	Char -> L_charac .                                  (rule 3)
 
@@ -1702,7 +1677,7 @@ State 67
 	%eof           reduce using rule 3
 
 
-State 68
+State 66
 
 	String -> L_quoted .                                (rule 4)
 
@@ -1743,21 +1718,21 @@ State 68
 	%eof           reduce using rule 4
 
 
-State 69
+State 67
 
 	Type3 -> '[' Type . ']'                             (rule 64)
 
-	']'            shift, and enter state 78
+	']'            shift, and enter state 76
 
 
-State 70
+State 68
 
 	Type3 -> '(' Type . ')'                             (rule 65)
 
-	')'            shift, and enter state 77
+	')'            shift, and enter state 75
 
 
-State 71
+State 69
 
 	Type1 -> Type1 '+' . Type2                          (rule 68)
 
@@ -1769,9 +1744,9 @@ State 71
 	Ident          goto state 19
 	Basic          goto state 20
 	Type3          goto state 21
-	Type2          goto state 76
+	Type2          goto state 74
 
-State 72
+State 70
 
 	Type -> Type1 '->' . Type                           (rule 70)
 
@@ -1785,9 +1760,9 @@ State 72
 	Type3          goto state 21
 	Type2          goto state 22
 	Type1          goto state 23
-	Type           goto state 75
+	Type           goto state 73
 
-State 73
+State 71
 
 	Type2 -> Type2 '*' . Type3                          (rule 66)
 
@@ -1798,9 +1773,9 @@ State 73
 
 	Ident          goto state 19
 	Basic          goto state 20
-	Type3          goto state 74
+	Type3          goto state 72
 
-State 74
+State 72
 
 	Type2 -> Type2 '*' Type3 .                          (rule 66)
 
@@ -1815,14 +1790,13 @@ State 74
 	'in'           reduce using rule 66
 	'initial'      reduce using rule 66
 	'output'       reduce using rule 66
-	'state'        reduce using rule 66
 	'then'         reduce using rule 66
 	'with'         reduce using rule 66
 	'}'            reduce using rule 66
 	%eof           reduce using rule 66
 
 
-State 75
+State 73
 
 	Type -> Type1 '->' Type .                           (rule 70)
 
@@ -1834,20 +1808,19 @@ State 75
 	'in'           reduce using rule 70
 	'initial'      reduce using rule 70
 	'output'       reduce using rule 70
-	'state'        reduce using rule 70
 	'then'         reduce using rule 70
 	'with'         reduce using rule 70
 	'}'            reduce using rule 70
 	%eof           reduce using rule 70
 
 
-State 76
+State 74
 
 	Type2 -> Type2 . '*' Type3                          (rule 66)
 	Type1 -> Type1 '+' Type2 .                          (rule 68)
 
 	')'            reduce using rule 68
-	'*'            shift, and enter state 73
+	'*'            shift, and enter state 71
 	'+'            reduce using rule 68
 	','            reduce using rule 68
 	'->'           reduce using rule 68
@@ -1857,14 +1830,13 @@ State 76
 	'in'           reduce using rule 68
 	'initial'      reduce using rule 68
 	'output'       reduce using rule 68
-	'state'        reduce using rule 68
 	'then'         reduce using rule 68
 	'with'         reduce using rule 68
 	'}'            reduce using rule 68
 	%eof           reduce using rule 68
 
 
-State 77
+State 75
 
 	Type3 -> '(' Type ')' .                             (rule 65)
 
@@ -1879,14 +1851,13 @@ State 77
 	'in'           reduce using rule 65
 	'initial'      reduce using rule 65
 	'output'       reduce using rule 65
-	'state'        reduce using rule 65
 	'then'         reduce using rule 65
 	'with'         reduce using rule 65
 	'}'            reduce using rule 65
 	%eof           reduce using rule 65
 
 
-State 78
+State 76
 
 	Type3 -> '[' Type ']' .                             (rule 64)
 
@@ -1901,52 +1872,51 @@ State 78
 	'in'           reduce using rule 64
 	'initial'      reduce using rule 64
 	'output'       reduce using rule 64
-	'state'        reduce using rule 64
 	'then'         reduce using rule 64
 	'with'         reduce using rule 64
 	'}'            reduce using rule 64
 	%eof           reduce using rule 64
 
 
-State 79
+State 77
 
 	Expr1 -> 'match' Expr . 'with' '{' ListAlternative '}'    (rule 54)
 
-	'with'         shift, and enter state 129
+	'with'         shift, and enter state 125
 
 
-State 80
+State 78
 
 	Expr1 -> 'let' Ident . '=' Expr 'in' Expr1          (rule 53)
 
-	'='            shift, and enter state 128
+	'='            shift, and enter state 124
 
 
-State 81
+State 79
 
 	Expr1 -> 'if' Expr . 'then' Expr 'else' Expr1       (rule 52)
 
-	'then'         shift, and enter state 127
+	'then'         shift, and enter state 123
 
 
-State 82
+State 80
 
 	ListExpr -> Expr .                                  (rule 58)
 	ListExpr -> Expr . ',' ListExpr                     (rule 59)
 
 	')'            reduce using rule 58
-	','            shift, and enter state 126
+	','            shift, and enter state 122
 	']'            reduce using rule 58
 
 
-State 83
+State 81
 
 	Expr11 -> '[' ListExpr . ']'                        (rule 28)
 
-	']'            shift, and enter state 125
+	']'            shift, and enter state 121
 
 
-State 84
+State 82
 
 	Expr11 -> Integer .                                 (rule 17)
 
@@ -1986,7 +1956,7 @@ State 84
 	%eof           reduce using rule 17
 
 
-State 85
+State 83
 
 	Expr7 -> '-' Expr7 .                                (rule 40)
 
@@ -2009,23 +1979,23 @@ State 85
 	%eof           reduce using rule 40
 
 
-State 86
+State 84
 
 	Expr11 -> '(\\' ListIdent . '->' Expr ')'           (rule 29)
 
-	'->'           shift, and enter state 124
+	'->'           shift, and enter state 120
 
 
-State 87
+State 85
 
 	Expr11 -> '(' Expr . ',' ListExpr ')'               (rule 27)
 	Expr11 -> '(' Expr . ')'                            (rule 30)
 
-	')'            shift, and enter state 122
-	','            shift, and enter state 123
+	')'            shift, and enter state 118
+	','            shift, and enter state 119
 
 
-State 88
+State 86
 
 	Expr11 -> '!' Expr11 .                              (rule 26)
 
@@ -2065,7 +2035,7 @@ State 88
 	%eof           reduce using rule 26
 
 
-State 89
+State 87
 
 	Expr -> Expr1 '::' . Type                           (rule 56)
 
@@ -2079,131 +2049,131 @@ State 89
 	Type3          goto state 21
 	Type2          goto state 22
 	Type1          goto state 23
-	Type           goto state 121
+	Type           goto state 117
 
-State 90
+State 88
 
 	Expr3 -> Expr3 ':' . Expr4                          (rule 48)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 120
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 116
+	QIdent         goto state 51
 
-State 91
+State 89
 
 	Expr4 -> Expr4 '|' . Expr5                          (rule 46)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 119
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 115
+	QIdent         goto state 51
 
-State 92
+State 90
 
 	Expr5 -> Expr5 '&' . Expr6                          (rule 44)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 118
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 114
+	QIdent         goto state 51
 
-State 93
+State 91
 
 	Expr6 -> Expr6 RelOp . Expr7                        (rule 42)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 117
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 113
+	QIdent         goto state 51
 
-State 94
+State 92
 
 	RelOp -> L_RelOp .                                  (rule 5)
 
@@ -2222,135 +2192,135 @@ State 94
 	L_quoted       reduce using rule 5
 
 
-State 95
+State 93
 
 	Expr8 -> Expr8 '+' . Expr9                          (rule 36)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 116
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 112
+	QIdent         goto state 51
 
-State 96
+State 94
 
 	Expr8 -> Expr8 '++' . Expr9                         (rule 38)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 115
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 111
+	QIdent         goto state 51
 
-State 97
+State 95
 
 	Expr8 -> Expr8 '-' . Expr9                          (rule 37)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 114
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 110
+	QIdent         goto state 51
 
-State 98
+State 96
 
 	Expr9 -> Expr9 '*' . Expr10                         (rule 33)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 113
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 109
+	QIdent         goto state 51
 
-State 99
+State 97
 
 	Expr9 -> Expr9 '/' . Expr10                         (rule 34)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 112
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 108
+	QIdent         goto state 51
 
-State 100
+State 98
 
 	Expr10 -> Expr10 Expr11 .                           (rule 31)
 
@@ -2390,77 +2360,60 @@ State 100
 	%eof           reduce using rule 31
 
 
-State 101
+State 99
 
 	Expr2 -> Integer '@' . Expr3                        (rule 50)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 111
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 107
+	QIdent         goto state 51
 
-State 102
+State 100
 
 	QIdent -> Ident '.' . Ident                         (rule 93)
 
 	L_ident        shift, and enter state 2
 
-	Ident          goto state 110
+	Ident          goto state 106
 
-State 103
+State 101
 
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' . ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
+	Stream -> 'stream' Ident 'input' ListIdent 'state' . ListSStmt 'output' ListSStmt 'initial' ListDef    (rule 96)
 
 	L_ident        shift, and enter state 2
 
 	Ident          goto state 3
-	VDecl          goto state 106
-	Def            goto state 107
-	SStmt          goto state 108
-	ListSStmt      goto state 109
+	VDecl          goto state 102
+	Def            goto state 103
+	SStmt          goto state 104
+	ListSStmt      goto state 105
 
-State 104
-
-	ListVDecl -> VDecl ',' . ListVDecl                  (rule 98)
-
-	L_ident        shift, and enter state 2
-
-	Ident          goto state 34
-	VDecl          goto state 35
-	ListVDecl      goto state 105
-
-State 105
-
-	ListVDecl -> VDecl ',' ListVDecl .                  (rule 98)
-
-	'state'        reduce using rule 98
-
-
-State 106
+State 102
 
 	SStmt -> VDecl .                                    (rule 94)
 
@@ -2469,7 +2422,7 @@ State 106
 	'output'       reduce using rule 94
 
 
-State 107
+State 103
 
 	SStmt -> Def .                                      (rule 95)
 
@@ -2478,24 +2431,24 @@ State 107
 	'output'       reduce using rule 95
 
 
-State 108
+State 104
 
-	ListSStmt -> SStmt .                                (rule 99)
-	ListSStmt -> SStmt . ';' ListSStmt                  (rule 100)
+	ListSStmt -> SStmt .                                (rule 97)
+	ListSStmt -> SStmt . ';' ListSStmt                  (rule 98)
 
-	';'            shift, and enter state 137
-	'initial'      reduce using rule 99
-	'output'       reduce using rule 99
-
-
-State 109
-
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt . 'output' ListSStmt 'initial' ListDef    (rule 96)
-
-	'output'       shift, and enter state 136
+	';'            shift, and enter state 133
+	'initial'      reduce using rule 97
+	'output'       reduce using rule 97
 
 
-State 110
+State 105
+
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt . 'output' ListSStmt 'initial' ListDef    (rule 96)
+
+	'output'       shift, and enter state 132
+
+
+State 106
 
 	QIdent -> Ident '.' Ident .                         (rule 93)
 
@@ -2535,14 +2488,14 @@ State 110
 	%eof           reduce using rule 93
 
 
-State 111
+State 107
 
 	Expr3 -> Expr3 . ':' Expr4                          (rule 48)
 	Expr2 -> Integer '@' Expr3 .                        (rule 50)
 
 	')'            reduce using rule 50
 	','            reduce using rule 50
-	':'            shift, and enter state 90
+	':'            shift, and enter state 88
 	'::'           reduce using rule 50
 	';'            reduce using rule 50
 	']'            reduce using rule 50
@@ -2556,16 +2509,16 @@ State 111
 	%eof           reduce using rule 50
 
 
-State 112
+State 108
 
 	Expr10 -> Expr10 . Expr11                           (rule 31)
 	Expr9 -> Expr9 '/' Expr10 .                         (rule 34)
 
-	'!'            shift, and enter state 54
+	'!'            shift, and enter state 52
 	'&'            reduce using rule 34
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
 	')'            reduce using rule 34
 	'*'            reduce using rule 34
 	'+'            reduce using rule 34
@@ -2576,43 +2529,43 @@ State 112
 	':'            reduce using rule 34
 	'::'           reduce using rule 34
 	';'            reduce using rule 34
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
 	']'            reduce using rule 34
 	'else'         reduce using rule 34
-	'false'        shift, and enter state 61
+	'false'        shift, and enter state 59
 	'in'           reduce using rule 34
 	'initial'      reduce using rule 34
 	'output'       reduce using rule 34
 	'then'         reduce using rule 34
-	'true'         shift, and enter state 65
+	'true'         shift, and enter state 63
 	'with'         reduce using rule 34
 	'|'            reduce using rule 34
 	'}'            reduce using rule 34
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 	L_RelOp        reduce using rule 34
 	%eof           reduce using rule 34
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 100
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 98
+	QIdent         goto state 51
 
-State 113
+State 109
 
 	Expr10 -> Expr10 . Expr11                           (rule 31)
 	Expr9 -> Expr9 '*' Expr10 .                         (rule 33)
 
-	'!'            shift, and enter state 54
+	'!'            shift, and enter state 52
 	'&'            reduce using rule 33
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
 	')'            reduce using rule 33
 	'*'            reduce using rule 33
 	'+'            reduce using rule 33
@@ -2623,34 +2576,34 @@ State 113
 	':'            reduce using rule 33
 	'::'           reduce using rule 33
 	';'            reduce using rule 33
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
 	']'            reduce using rule 33
 	'else'         reduce using rule 33
-	'false'        shift, and enter state 61
+	'false'        shift, and enter state 59
 	'in'           reduce using rule 33
 	'initial'      reduce using rule 33
 	'output'       reduce using rule 33
 	'then'         reduce using rule 33
-	'true'         shift, and enter state 65
+	'true'         shift, and enter state 63
 	'with'         reduce using rule 33
 	'|'            reduce using rule 33
 	'}'            reduce using rule 33
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 	L_RelOp        reduce using rule 33
 	%eof           reduce using rule 33
 
-	Ident          goto state 37
-	Integer        goto state 84
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 100
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 82
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 98
+	QIdent         goto state 51
 
-State 114
+State 110
 
 	Expr9 -> Expr9 . '*' Expr10                         (rule 33)
 	Expr9 -> Expr9 . '/' Expr10                         (rule 34)
@@ -2658,12 +2611,12 @@ State 114
 
 	'&'            reduce using rule 37
 	')'            reduce using rule 37
-	'*'            shift, and enter state 98
+	'*'            shift, and enter state 96
 	'+'            reduce using rule 37
 	'++'           reduce using rule 37
 	','            reduce using rule 37
 	'-'            reduce using rule 37
-	'/'            shift, and enter state 99
+	'/'            shift, and enter state 97
 	':'            reduce using rule 37
 	'::'           reduce using rule 37
 	';'            reduce using rule 37
@@ -2680,7 +2633,7 @@ State 114
 	%eof           reduce using rule 37
 
 
-State 115
+State 111
 
 	Expr9 -> Expr9 . '*' Expr10                         (rule 33)
 	Expr9 -> Expr9 . '/' Expr10                         (rule 34)
@@ -2688,12 +2641,12 @@ State 115
 
 	'&'            reduce using rule 38
 	')'            reduce using rule 38
-	'*'            shift, and enter state 98
+	'*'            shift, and enter state 96
 	'+'            reduce using rule 38
 	'++'           reduce using rule 38
 	','            reduce using rule 38
 	'-'            reduce using rule 38
-	'/'            shift, and enter state 99
+	'/'            shift, and enter state 97
 	':'            reduce using rule 38
 	'::'           reduce using rule 38
 	';'            reduce using rule 38
@@ -2710,7 +2663,7 @@ State 115
 	%eof           reduce using rule 38
 
 
-State 116
+State 112
 
 	Expr9 -> Expr9 . '*' Expr10                         (rule 33)
 	Expr9 -> Expr9 . '/' Expr10                         (rule 34)
@@ -2718,12 +2671,12 @@ State 116
 
 	'&'            reduce using rule 36
 	')'            reduce using rule 36
-	'*'            shift, and enter state 98
+	'*'            shift, and enter state 96
 	'+'            reduce using rule 36
 	'++'           reduce using rule 36
 	','            reduce using rule 36
 	'-'            reduce using rule 36
-	'/'            shift, and enter state 99
+	'/'            shift, and enter state 97
 	':'            reduce using rule 36
 	'::'           reduce using rule 36
 	';'            reduce using rule 36
@@ -2740,7 +2693,7 @@ State 116
 	%eof           reduce using rule 36
 
 
-State 117
+State 113
 
 	Expr6 -> Expr6 RelOp Expr7 .                        (rule 42)
 
@@ -2763,7 +2716,7 @@ State 117
 	%eof           reduce using rule 42
 
 
-State 118
+State 114
 
 	Expr6 -> Expr6 . RelOp Expr7                        (rule 42)
 	Expr5 -> Expr5 '&' Expr6 .                          (rule 44)
@@ -2783,17 +2736,17 @@ State 118
 	'with'         reduce using rule 44
 	'|'            reduce using rule 44
 	'}'            reduce using rule 44
-	L_RelOp        shift, and enter state 94
+	L_RelOp        shift, and enter state 92
 	%eof           reduce using rule 44
 
-	RelOp          goto state 93
+	RelOp          goto state 91
 
-State 119
+State 115
 
 	Expr5 -> Expr5 . '&' Expr6                          (rule 44)
 	Expr4 -> Expr4 '|' Expr5 .                          (rule 46)
 
-	'&'            shift, and enter state 92
+	'&'            shift, and enter state 90
 	')'            reduce using rule 46
 	','            reduce using rule 46
 	':'            reduce using rule 46
@@ -2811,7 +2764,7 @@ State 119
 	%eof           reduce using rule 46
 
 
-State 120
+State 116
 
 	Expr4 -> Expr4 . '|' Expr5                          (rule 46)
 	Expr3 -> Expr3 ':' Expr4 .                          (rule 48)
@@ -2828,12 +2781,12 @@ State 120
 	'output'       reduce using rule 48
 	'then'         reduce using rule 48
 	'with'         reduce using rule 48
-	'|'            shift, and enter state 91
+	'|'            shift, and enter state 89
 	'}'            reduce using rule 48
 	%eof           reduce using rule 48
 
 
-State 121
+State 117
 
 	Expr -> Expr1 '::' Type .                           (rule 56)
 
@@ -2851,7 +2804,7 @@ State 121
 	%eof           reduce using rule 56
 
 
-State 122
+State 118
 
 	Expr11 -> '(' Expr ')' .                            (rule 30)
 
@@ -2891,86 +2844,86 @@ State 122
 	%eof           reduce using rule 30
 
 
-State 123
+State 119
 
 	Expr11 -> '(' Expr ',' . ListExpr ')'               (rule 27)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 82
-	ListExpr       goto state 135
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 80
+	ListExpr       goto state 131
+	QIdent         goto state 51
 
-State 124
+State 120
 
 	Expr11 -> '(\\' ListIdent '->' . Expr ')'           (rule 29)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 134
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 130
+	QIdent         goto state 51
 
-State 125
+State 121
 
 	Expr11 -> '[' ListExpr ']' .                        (rule 28)
 
@@ -3010,172 +2963,172 @@ State 125
 	%eof           reduce using rule 28
 
 
-State 126
+State 122
 
 	ListExpr -> Expr ',' . ListExpr                     (rule 59)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 82
-	ListExpr       goto state 133
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 80
+	ListExpr       goto state 129
+	QIdent         goto state 51
 
-State 127
+State 123
 
 	Expr1 -> 'if' Expr 'then' . Expr 'else' Expr1       (rule 52)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 132
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 128
+	QIdent         goto state 51
 
-State 128
+State 124
 
 	Expr1 -> 'let' Ident '=' . Expr 'in' Expr1          (rule 53)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 131
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 127
+	QIdent         goto state 51
 
-State 129
+State 125
 
 	Expr1 -> 'match' Expr 'with' . '{' ListAlternative '}'    (rule 54)
 
-	'{'            shift, and enter state 130
+	'{'            shift, and enter state 126
 
 
-State 130
+State 126
 
 	Expr1 -> 'match' Expr 'with' '{' . ListAlternative '}'    (rule 54)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Alternative    goto state 148
-	ListAlternativegoto state 149
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 152
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Alternative    goto state 144
+	ListAlternativegoto state 145
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 148
 
-State 131
+State 127
 
 	Expr1 -> 'let' Ident '=' Expr . 'in' Expr1          (rule 53)
 
-	'in'           shift, and enter state 143
+	'in'           shift, and enter state 139
 
 
-State 132
+State 128
 
 	Expr1 -> 'if' Expr 'then' Expr . 'else' Expr1       (rule 52)
 
-	'else'         shift, and enter state 142
+	'else'         shift, and enter state 138
 
 
-State 133
+State 129
 
 	ListExpr -> Expr ',' ListExpr .                     (rule 59)
 
@@ -3183,60 +3136,60 @@ State 133
 	']'            reduce using rule 59
 
 
-State 134
+State 130
 
 	Expr11 -> '(\\' ListIdent '->' Expr . ')'           (rule 29)
 
-	')'            shift, and enter state 141
+	')'            shift, and enter state 137
+
+
+State 131
+
+	Expr11 -> '(' Expr ',' ListExpr . ')'               (rule 27)
+
+	')'            shift, and enter state 136
+
+
+State 132
+
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' . ListSStmt 'initial' ListDef    (rule 96)
+
+	L_ident        shift, and enter state 2
+
+	Ident          goto state 3
+	VDecl          goto state 102
+	Def            goto state 103
+	SStmt          goto state 104
+	ListSStmt      goto state 135
+
+State 133
+
+	ListSStmt -> SStmt ';' . ListSStmt                  (rule 98)
+
+	L_ident        shift, and enter state 2
+
+	Ident          goto state 3
+	VDecl          goto state 102
+	Def            goto state 103
+	SStmt          goto state 104
+	ListSStmt      goto state 134
+
+State 134
+
+	ListSStmt -> SStmt ';' ListSStmt .                  (rule 98)
+
+	'initial'      reduce using rule 98
+	'output'       reduce using rule 98
 
 
 State 135
 
-	Expr11 -> '(' Expr ',' ListExpr . ')'               (rule 27)
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt . 'initial' ListDef    (rule 96)
 
-	')'            shift, and enter state 140
+	'initial'      shift, and enter state 166
 
 
 State 136
-
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' . ListSStmt 'initial' ListDef    (rule 96)
-
-	L_ident        shift, and enter state 2
-
-	Ident          goto state 3
-	VDecl          goto state 106
-	Def            goto state 107
-	SStmt          goto state 108
-	ListSStmt      goto state 139
-
-State 137
-
-	ListSStmt -> SStmt ';' . ListSStmt                  (rule 100)
-
-	L_ident        shift, and enter state 2
-
-	Ident          goto state 3
-	VDecl          goto state 106
-	Def            goto state 107
-	SStmt          goto state 108
-	ListSStmt      goto state 138
-
-State 138
-
-	ListSStmt -> SStmt ';' ListSStmt .                  (rule 100)
-
-	'initial'      reduce using rule 100
-	'output'       reduce using rule 100
-
-
-State 139
-
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt . 'initial' ListDef    (rule 96)
-
-	'initial'      shift, and enter state 170
-
-
-State 140
 
 	Expr11 -> '(' Expr ',' ListExpr ')' .               (rule 27)
 
@@ -3276,7 +3229,7 @@ State 140
 	%eof           reduce using rule 27
 
 
-State 141
+State 137
 
 	Expr11 -> '(\\' ListIdent '->' Expr ')' .           (rule 29)
 
@@ -3316,83 +3269,83 @@ State 141
 	%eof           reduce using rule 29
 
 
-State 142
+State 138
 
 	Expr1 -> 'if' Expr 'then' Expr 'else' . Expr1       (rule 52)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 169
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 165
+	QIdent         goto state 51
 
-State 143
+State 139
 
 	Expr1 -> 'let' Ident '=' Expr 'in' . Expr1          (rule 53)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 168
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 164
+	QIdent         goto state 51
 
-State 144
+State 140
 
 	Pattern2 -> Ident .                                 (rule 75)
 
@@ -3403,7 +3356,7 @@ State 144
 	']'            reduce using rule 75
 
 
-State 145
+State 141
 
 	Pattern2 -> Integer .                               (rule 80)
 	Pattern -> Integer . '@' Pattern                    (rule 89)
@@ -3412,11 +3365,11 @@ State 145
 	','            reduce using rule 80
 	'->'           reduce using rule 80
 	':'            reduce using rule 80
-	'@'            shift, and enter state 167
+	'@'            shift, and enter state 163
 	']'            reduce using rule 80
 
 
-State 146
+State 142
 
 	Pattern2 -> Char .                                  (rule 81)
 
@@ -3427,7 +3380,7 @@ State 146
 	']'            reduce using rule 81
 
 
-State 147
+State 143
 
 	Pattern2 -> String .                                (rule 79)
 
@@ -3438,23 +3391,23 @@ State 147
 	']'            reduce using rule 79
 
 
-State 148
+State 144
 
 	ListAlternative -> Alternative .                    (rule 73)
 	ListAlternative -> Alternative . ';' ListAlternative    (rule 74)
 
-	';'            shift, and enter state 166
+	';'            shift, and enter state 162
 	'}'            reduce using rule 73
 
 
-State 149
+State 145
 
 	Expr1 -> 'match' Expr 'with' '{' ListAlternative . '}'    (rule 54)
 
-	'}'            shift, and enter state 165
+	'}'            shift, and enter state 161
 
 
-State 150
+State 146
 
 	Pattern1 -> Pattern2 .                              (rule 88)
 
@@ -3465,7 +3418,7 @@ State 150
 	']'            reduce using rule 88
 
 
-State 151
+State 147
 
 	Pattern1 -> Pattern1 . ':' Pattern2                 (rule 87)
 	Pattern -> Pattern1 .                               (rule 90)
@@ -3473,43 +3426,43 @@ State 151
 	')'            reduce using rule 90
 	','            reduce using rule 90
 	'->'           reduce using rule 90
-	':'            shift, and enter state 164
+	':'            shift, and enter state 160
 	']'            reduce using rule 90
 
 
-State 152
+State 148
 
 	Alternative -> Pattern . '->' Expr                  (rule 72)
 
-	'->'           shift, and enter state 163
+	'->'           shift, and enter state 159
 
 
-State 153
+State 149
 
 	Pattern2 -> '(' . Pattern ',' ListPattern ')'       (rule 77)
 	Pattern2 -> '(' . Pattern ')'                       (rule 86)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 162
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 158
 
-State 154
+State 150
 
 	Pattern2 -> '()' .                                  (rule 85)
 
@@ -3520,32 +3473,32 @@ State 154
 	']'            reduce using rule 85
 
 
-State 155
+State 151
 
 	Pattern2 -> '[' . ListPattern ']'                   (rule 78)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 160
-	ListPattern    goto state 161
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 156
+	ListPattern    goto state 157
 
-State 156
+State 152
 
 	Pattern2 -> '[]' .                                  (rule 84)
 
@@ -3556,7 +3509,7 @@ State 156
 	']'            reduce using rule 84
 
 
-State 157
+State 153
 
 	Pattern2 -> '_' .                                   (rule 76)
 
@@ -3567,7 +3520,7 @@ State 157
 	']'            reduce using rule 76
 
 
-State 158
+State 154
 
 	Pattern2 -> 'false' .                               (rule 83)
 
@@ -3578,7 +3531,7 @@ State 158
 	']'            reduce using rule 83
 
 
-State 159
+State 155
 
 	Pattern2 -> 'true' .                                (rule 82)
 
@@ -3589,94 +3542,94 @@ State 159
 	']'            reduce using rule 82
 
 
-State 160
+State 156
 
 	ListPattern -> Pattern .                            (rule 91)
 	ListPattern -> Pattern . ',' ListPattern            (rule 92)
 
 	')'            reduce using rule 91
-	','            shift, and enter state 182
+	','            shift, and enter state 178
 	']'            reduce using rule 91
 
 
-State 161
+State 157
 
 	Pattern2 -> '[' ListPattern . ']'                   (rule 78)
 
-	']'            shift, and enter state 181
+	']'            shift, and enter state 177
 
 
-State 162
+State 158
 
 	Pattern2 -> '(' Pattern . ',' ListPattern ')'       (rule 77)
 	Pattern2 -> '(' Pattern . ')'                       (rule 86)
 
-	')'            shift, and enter state 179
-	','            shift, and enter state 180
+	')'            shift, and enter state 175
+	','            shift, and enter state 176
 
 
-State 163
+State 159
 
 	Alternative -> Pattern '->' . Expr                  (rule 72)
 
-	'!'            shift, and enter state 54
-	'('            shift, and enter state 55
-	'()'           shift, and enter state 56
-	'(\\'          shift, and enter state 57
-	'-'            shift, and enter state 58
-	'['            shift, and enter state 59
-	'[]'           shift, and enter state 60
-	'false'        shift, and enter state 61
-	'if'           shift, and enter state 62
-	'let'          shift, and enter state 63
-	'match'        shift, and enter state 64
-	'true'         shift, and enter state 65
+	'!'            shift, and enter state 52
+	'('            shift, and enter state 53
+	'()'           shift, and enter state 54
+	'(\\'          shift, and enter state 55
+	'-'            shift, and enter state 56
+	'['            shift, and enter state 57
+	'[]'           shift, and enter state 58
+	'false'        shift, and enter state 59
+	'if'           shift, and enter state 60
+	'let'          shift, and enter state 61
+	'match'        shift, and enter state 62
+	'true'         shift, and enter state 63
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 37
-	Integer        goto state 38
-	Char           goto state 39
-	String         goto state 40
-	Expr11         goto state 41
-	Expr10         goto state 42
-	Expr9          goto state 43
-	Expr8          goto state 44
-	Expr7          goto state 45
-	Expr6          goto state 46
-	Expr5          goto state 47
-	Expr4          goto state 48
-	Expr3          goto state 49
-	Expr2          goto state 50
-	Expr1          goto state 51
-	Expr           goto state 178
-	QIdent         goto state 53
+	Ident          goto state 35
+	Integer        goto state 36
+	Char           goto state 37
+	String         goto state 38
+	Expr11         goto state 39
+	Expr10         goto state 40
+	Expr9          goto state 41
+	Expr8          goto state 42
+	Expr7          goto state 43
+	Expr6          goto state 44
+	Expr5          goto state 45
+	Expr4          goto state 46
+	Expr3          goto state 47
+	Expr2          goto state 48
+	Expr1          goto state 49
+	Expr           goto state 174
+	QIdent         goto state 51
 
-State 164
+State 160
 
 	Pattern1 -> Pattern1 ':' . Pattern2                 (rule 87)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 176
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 177
+	Ident          goto state 140
+	Integer        goto state 172
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 173
 
-State 165
+State 161
 
 	Expr1 -> 'match' Expr 'with' '{' ListAlternative '}' .    (rule 54)
 
@@ -3695,57 +3648,57 @@ State 165
 	%eof           reduce using rule 54
 
 
-State 166
+State 162
 
 	ListAlternative -> Alternative ';' . ListAlternative    (rule 74)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Alternative    goto state 148
-	ListAlternativegoto state 175
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 152
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Alternative    goto state 144
+	ListAlternativegoto state 171
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 148
 
-State 167
+State 163
 
 	Pattern -> Integer '@' . Pattern                    (rule 89)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 174
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 170
 
-State 168
+State 164
 
 	Expr1 -> 'let' Ident '=' Expr 'in' Expr1 .          (rule 53)
 
@@ -3764,7 +3717,7 @@ State 168
 	%eof           reduce using rule 53
 
 
-State 169
+State 165
 
 	Expr1 -> 'if' Expr 'then' Expr 'else' Expr1 .       (rule 52)
 
@@ -3783,17 +3736,17 @@ State 169
 	%eof           reduce using rule 52
 
 
-State 170
+State 166
 
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' . ListDef    (rule 96)
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' . ListDef    (rule 96)
 
 	L_ident        shift, and enter state 2
 
-	Ident          goto state 171
-	Def            goto state 172
-	ListDef        goto state 173
+	Ident          goto state 167
+	Def            goto state 168
+	ListDef        goto state 169
 
-State 171
+State 167
 
 	Def -> Ident . ListIdent '=' Expr                   (rule 16)
 
@@ -3803,25 +3756,25 @@ State 171
 	Ident          goto state 16
 	ListIdent      goto state 17
 
-State 172
+State 168
 
-	ListDef -> Def .                                    (rule 101)
-	ListDef -> Def . ',' ListDef                        (rule 102)
+	ListDef -> Def .                                    (rule 99)
+	ListDef -> Def . ',' ListDef                        (rule 100)
 
-	','            shift, and enter state 185
-	';'            reduce using rule 101
-	%eof           reduce using rule 101
+	','            shift, and enter state 181
+	';'            reduce using rule 99
+	%eof           reduce using rule 99
 
 
-State 173
+State 169
 
-	Stream -> 'stream' Ident 'input' ListVDecl 'state' ListSStmt 'output' ListSStmt 'initial' ListDef .    (rule 96)
+	Stream -> 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef .    (rule 96)
 
 	';'            reduce using rule 96
 	%eof           reduce using rule 96
 
 
-State 174
+State 170
 
 	Pattern -> Integer '@' Pattern .                    (rule 89)
 
@@ -3831,14 +3784,14 @@ State 174
 	']'            reduce using rule 89
 
 
-State 175
+State 171
 
 	ListAlternative -> Alternative ';' ListAlternative .    (rule 74)
 
 	'}'            reduce using rule 74
 
 
-State 176
+State 172
 
 	Pattern2 -> Integer .                               (rule 80)
 
@@ -3849,7 +3802,7 @@ State 176
 	']'            reduce using rule 80
 
 
-State 177
+State 173
 
 	Pattern1 -> Pattern1 ':' Pattern2 .                 (rule 87)
 
@@ -3860,7 +3813,7 @@ State 177
 	']'            reduce using rule 87
 
 
-State 178
+State 174
 
 	Alternative -> Pattern '->' Expr .                  (rule 72)
 
@@ -3868,7 +3821,7 @@ State 178
 	'}'            reduce using rule 72
 
 
-State 179
+State 175
 
 	Pattern2 -> '(' Pattern ')' .                       (rule 86)
 
@@ -3879,32 +3832,32 @@ State 179
 	']'            reduce using rule 86
 
 
-State 180
+State 176
 
 	Pattern2 -> '(' Pattern ',' . ListPattern ')'       (rule 77)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 160
-	ListPattern    goto state 184
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 156
+	ListPattern    goto state 180
 
-State 181
+State 177
 
 	Pattern2 -> '[' ListPattern ']' .                   (rule 78)
 
@@ -3915,32 +3868,32 @@ State 181
 	']'            reduce using rule 78
 
 
-State 182
+State 178
 
 	ListPattern -> Pattern ',' . ListPattern            (rule 92)
 
-	'('            shift, and enter state 153
-	'()'           shift, and enter state 154
-	'['            shift, and enter state 155
-	'[]'           shift, and enter state 156
-	'_'            shift, and enter state 157
-	'false'        shift, and enter state 158
-	'true'         shift, and enter state 159
+	'('            shift, and enter state 149
+	'()'           shift, and enter state 150
+	'['            shift, and enter state 151
+	'[]'           shift, and enter state 152
+	'_'            shift, and enter state 153
+	'false'        shift, and enter state 154
+	'true'         shift, and enter state 155
 	L_ident        shift, and enter state 2
-	L_integ        shift, and enter state 66
-	L_charac       shift, and enter state 67
-	L_quoted       shift, and enter state 68
+	L_integ        shift, and enter state 64
+	L_charac       shift, and enter state 65
+	L_quoted       shift, and enter state 66
 
-	Ident          goto state 144
-	Integer        goto state 145
-	Char           goto state 146
-	String         goto state 147
-	Pattern2       goto state 150
-	Pattern1       goto state 151
-	Pattern        goto state 160
-	ListPattern    goto state 183
+	Ident          goto state 140
+	Integer        goto state 141
+	Char           goto state 142
+	String         goto state 143
+	Pattern2       goto state 146
+	Pattern1       goto state 147
+	Pattern        goto state 156
+	ListPattern    goto state 179
 
-State 183
+State 179
 
 	ListPattern -> Pattern ',' ListPattern .            (rule 92)
 
@@ -3948,32 +3901,32 @@ State 183
 	']'            reduce using rule 92
 
 
-State 184
+State 180
 
 	Pattern2 -> '(' Pattern ',' ListPattern . ')'       (rule 77)
 
-	')'            shift, and enter state 187
+	')'            shift, and enter state 183
 
 
-State 185
+State 181
 
-	ListDef -> Def ',' . ListDef                        (rule 102)
+	ListDef -> Def ',' . ListDef                        (rule 100)
 
 	L_ident        shift, and enter state 2
 
-	Ident          goto state 171
-	Def            goto state 172
-	ListDef        goto state 186
+	Ident          goto state 167
+	Def            goto state 168
+	ListDef        goto state 182
 
-State 186
+State 182
 
-	ListDef -> Def ',' ListDef .                        (rule 102)
+	ListDef -> Def ',' ListDef .                        (rule 100)
 
-	';'            reduce using rule 102
-	%eof           reduce using rule 102
+	';'            reduce using rule 100
+	%eof           reduce using rule 100
 
 
-State 187
+State 183
 
 	Pattern2 -> '(' Pattern ',' ListPattern ')' .       (rule 77)
 
@@ -3987,7 +3940,7 @@ State 187
 -----------------------------------------------------------------------------
 Grammar Totals
 -----------------------------------------------------------------------------
-Number of rules: 103
+Number of rules: 101
 Number of terminals: 48
-Number of non-terminals: 43
-Number of states: 188
+Number of non-terminals: 42
+Number of states: 184

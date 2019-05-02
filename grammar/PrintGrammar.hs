@@ -114,8 +114,6 @@ instance Print Top where
 instance Print VDecl where
   prt i e = case e of
     DVDecl id type_ -> prPrec i 0 (concatD [prt 0 id, doc (showString "::"), prt 0 type_])
-  prtList _ [x] = concatD [prt 0 x]
-  prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
 
 instance Print TDecl where
   prt i e = case e of
@@ -219,10 +217,7 @@ instance Print SStmt where
 
 instance Print Stream where
   prt i e = case e of
-    DStream id vdecls sstmts1 sstmts2 defs -> prPrec i 0 (concatD [doc (showString "stream"), prt 0 id, doc (showString "input"), prt 0 vdecls, doc (showString "state"), prt 0 sstmts1, doc (showString "output"), prt 0 sstmts2, doc (showString "initial"), prt 0 defs])
-
-instance Print [VDecl] where
-  prt = prtList
+    DStream id ids sstmts1 sstmts2 defs -> prPrec i 0 (concatD [doc (showString "stream"), prt 0 id, doc (showString "input"), prt 0 ids, doc (showString "state"), prt 0 sstmts1, doc (showString "output"), prt 0 sstmts2, doc (showString "initial"), prt 0 defs])
 
 instance Print [SStmt] where
   prt = prtList

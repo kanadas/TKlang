@@ -156,9 +156,7 @@ All other symbols are terminals.
   | //QIdent// | -> | //Ident// ``.`` //Ident// 
   | //SStmt// | -> | //VDecl// 
   |  |  **|**  | //Def// 
-  | //Stream// | -> | ``stream`` //Ident// ``input`` //[VDecl]// ``state`` //[SStmt]// ``output`` //[SStmt]// ``initial`` //[Def]// 
-  | //[VDecl]// | -> | //VDecl// 
-  |  |  **|**  | //VDecl// ``,`` //[VDecl]// 
+  | //Stream// | -> | ``stream`` //Ident// ``input`` //[Ident]// ``state`` //[SStmt]// ``output`` //[SStmt]// ``initial`` //[Def]// 
   | //[SStmt]// | -> | //SStmt// 
   |  |  **|**  | //SStmt// ``;`` //[SStmt]// 
   | //[Def]// | -> | //Def// 

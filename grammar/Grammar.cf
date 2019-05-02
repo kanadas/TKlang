@@ -83,8 +83,8 @@ Qual.           QIdent ::= Ident "." Ident ;
 SDecl.          SStmt ::= VDecl ;
 SDef.           SStmt ::= Def ;
 
-DStream.        Stream ::= "stream" Ident "input" [VDecl] "state" [SStmt] "output" [SStmt] "initial" [Def] ;
-separator nonempty VDecl "," ;
+DStream.        Stream ::= "stream" Ident "input" [Ident] "state" [SStmt] "output" [SStmt] "initial" [Def] ;
+
 separator nonempty SStmt ";" ;
 separator nonempty Def "," ;
 

@@ -100,6 +100,6 @@ data QIdent = Qual Ident Ident
 data SStmt = SDecl VDecl | SDef Def
   deriving (Eq, Ord, Show, Read)
 
-data Stream = DStream Ident [VDecl] [SStmt] [SStmt] [Def]
+data Stream = DStream Ident [Ident] [SStmt] [SStmt] [Def]
   deriving (Eq, Ord, Show, Read)
 

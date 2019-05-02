@@ -58,6 +58,14 @@ data Expr
     | EType Expr Type
   deriving (Eq, Ord, Show, Read)
 
+gt, lt, ge, le, eq, neq :: RelOp
+gt = RelOp ">"
+lt = RelOp "<"
+ge = RelOp ">="
+le = RelOp "<="
+eq = RelOp "=="
+neq = RelOp "!="
+
 data Type
     = TBasic Basic
     | TIdent Ident
@@ -92,6 +100,6 @@ data QIdent = Qual Ident Ident
 data SStmt = SDecl VDecl | SDef Def
   deriving (Eq, Ord, Show, Read)
 
-data Stream = DStream Ident [VDecl] [SStmt] [SStmt] [Def]
+data Stream = DStream Ident [Ident] [SStmt] [SStmt] [Def]
   deriving (Eq, Ord, Show, Read)
 

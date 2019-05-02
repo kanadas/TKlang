@@ -10,6 +10,9 @@ module CheckTypes(
     ,inferProgram
     ) where
 
+
+--TODO stream application
+
 import AbsGrammar
 import PrintGrammar
 --import Data.Maybe
@@ -74,7 +77,6 @@ data TAlg = Con TBasic
         | Union [TAlg]
         | Fun TAlg TAlg
         | Rec TVar TAlg --TVar needs to be fresh
-        | Stream [TAlg] Mapping
         deriving Eq
 
 instance Show TAlg where
@@ -86,7 +88,9 @@ instance Show TAlg where
         Fun a b -> show a ++ "->" ++ show b
         Rec v t -> "(" ++ show v ++ "." ++ show t ++ ")"
 
-data Env = Env {venv :: Mapping, tenv :: Mapping, denv :: Mapping}
+data TStream = TStream [Ident] (Map Ident TAlg)
+
+data Env = Env {venv :: Mapping, tenv :: Mapping, denv :: Mapping, senv :: Map Ident TStream}
 
 type Constraint = (TAlg, TAlg, Expr) 
 
@@ -101,14 +105,17 @@ freshV = do
 fresh :: (MonadState Integer m) => m TAlg
 fresh = Var <$> freshV 
 
-liftVal :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
-liftVal f (Env ve te de) = Env (f ve) te de
+liftVal :: (Mapping -> Mapping) -> Env -> Env
+liftVal f (Env ve te de se) = Env (f ve) te de se
 
-liftType :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
-liftType f (Env ve te de) = Env ve (f te) de
+liftType :: (Mapping -> Mapping) -> Env -> Env
+liftType f (Env ve te de se) = Env ve (f te) de se
 
-liftDecl :: (Map Ident TAlg -> Map Ident TAlg) -> Env -> Env
-liftDecl f (Env ve te de) = Env ve te (f de)
+liftDecl :: (Mapping -> Mapping) -> Env -> Env
+liftDecl f (Env ve te de se) = Env ve te (f de) se
+
+liftStream :: (Map Ident TStream -> Map Ident TStream) -> Env -> Env
+liftStream f (Env ve te de se) = Env ve te de (f se)
 
 insertVal :: Ident -> TAlg -> Infer Env
 insertVal ident t = asks $ liftVal (Map.insert ident t)
@@ -119,6 +126,9 @@ insertDecl ident t = asks $ liftDecl (Map.insert ident t)
 insertType :: Ident -> TAlg -> Infer Env
 insertType ident t = asks $ liftType (Map.insert ident t)
 
+insertStream :: Ident -> TStream -> Infer Env
+insertStream ident t = asks $ liftStream (Map.insert ident t)
+
 withVal :: Ident -> TAlg -> Infer a -> Infer a
 withVal ident t e = local (liftVal (Map.insert ident t)) e
 
@@ -127,7 +137,7 @@ withVal ident t e = local (liftVal (Map.insert ident t)) e
 --    let nenv (Env env tenv) = Env env (Map.insert ident t tenv)
 --    local nenv e
 
-getEnv :: (Env -> Map Ident TAlg) -> Ident -> Infer TAlg
+getEnv :: (Env -> Map Ident a) -> Ident -> Infer a
 getEnv f ident = do
     env <- asks f
     case Map.lookup ident env of
@@ -201,22 +211,21 @@ inferSStmt x = case x of
 
 inferStream :: Stream -> Infer Env
 inferStream x = case x of
-    DStream ident vdecls sstmts1 sstmts2 defs -> do
+    DStream ident idents sstmts1 sstmts2 defs -> do
         (env, cons) <- censor (\_ -> []) $ listen $ do 
-            e0 <- ask
-            e1 <- foldM (\acc (DVDecl ident t) -> local (\_ -> acc) (inferType t) >>= insertVal ident) e0  vdecls
+            e0 <- asks (liftStream (\_ -> Map.empty))
+            _ <- foldM (\acc def -> local (\_ -> acc) (inferSStmt (SDef def))) e0 defs
+            e1 <- foldM (\acc ident -> getEnv senv ident >>= (\s -> return acc{senv = Map.insert ident s (senv acc)})) e0  idents
             e2 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e1 sstmts1
-            e3 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e2 sstmts2
-            foldM (\acc def -> local (\_ -> acc) (inferSStmt (SDef def))) e3 defs
+            foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e2 sstmts2
         s <- get
         sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
         foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
-        let nenv = Map.map (apply sub) (venv env)
-        let l = foldr (\(DVDecl ident _) acc -> (nenv Map.! ident):acc) [] vdecls
+        let nenv = apply sub (venv env)
         let out = foldl (\acc sstmt -> case sstmt of {
             SDef (DDef ident _ _) -> Map.insert ident (nenv Map.! ident) acc;
             _ -> acc}) Map.empty sstmts2
-        insertVal ident (Stream l out)
+        insertStream ident (TStream idents out)
 
 
 inferExpr :: Expr -> Infer TAlg
@@ -228,12 +237,10 @@ inferExpr x =
         EString _ -> listT $ Con TChar
         EIdent ident -> getEnv venv ident
         EQual (Qual id1 id2) -> do
-            v <- getEnv venv id1
-            case v of
-                Stream _ out -> case Map.lookup id2 out of
-                    Just t -> return t
-                    Nothing -> throwError $ NotStreamField id1 id2 x
-                _ -> throwError $ NotAStream id1 x
+            (TStream _ v) <- getEnv senv id1
+            case Map.lookup id2 v of
+                Just t -> return t
+                Nothing -> throwError $ NotStreamField id1 id2 x
         ETrue -> return $ Con TBool
         EFalse -> return $ Con TBool
         EVoid -> return $ Con TVoid
@@ -467,7 +474,6 @@ instance Substitutable TAlg where
     apply s (Prod l) = Prod $ apply s l
     apply s (Union l) = Union $ apply s l
     apply s (Fun t1 t2) = Fun (apply s t1) (apply s t2)
-    apply s (Stream l o) = Stream (apply s l) (apply s o)
     apply s (Rec x t) = Rec x (apply s t)
 
     ftv (Con _) = Set.empty
@@ -475,7 +481,6 @@ instance Substitutable TAlg where
     ftv (Prod l) = ftv l
     ftv (Union l) = ftv l
     ftv (Fun t1 t2) = Set.union (ftv t1) (ftv t2)
-    ftv (Stream l o) = Set.union (ftv l) (ftv o)
     ftv (Rec v t) = Set.delete v (ftv t)
 
 instance Substitutable a => Substitutable [a] where

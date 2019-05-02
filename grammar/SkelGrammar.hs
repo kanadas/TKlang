@@ -102,5 +102,5 @@ transSStmt x = case x of
   SDef def -> failure x
 transStream :: Stream -> Result
 transStream x = case x of
-  DStream ident vdecls sstmts1 sstmts2 defs -> failure x
+  DStream ident idents sstmts1 sstmts2 defs -> failure x
 
