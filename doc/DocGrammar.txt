@@ -157,9 +157,11 @@ All other symbols are terminals.
   | //SStmt// | -> | //VDecl// 
   |  |  **|**  | //Def// 
   | //Stream// | -> | ``stream`` //Ident// ``input`` //[Ident]// ``state`` //[SStmt]// ``output`` //[SStmt]// ``initial`` //[Def]// 
-  | //[SStmt]// | -> | //SStmt// 
+  | //[SStmt]// | -> | **eps**
+  |  |  **|**  | //SStmt// 
   |  |  **|**  | //SStmt// ``;`` //[SStmt]// 
-  | //[Def]// | -> | //Def// 
+  | //[Def]// | -> | **eps**
+  |  |  **|**  | //Def// 
   |  |  **|**  | //Def// ``,`` //[Def]// 
 
 

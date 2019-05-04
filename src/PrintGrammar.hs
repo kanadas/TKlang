@@ -122,6 +122,7 @@ instance Print TDecl where
 instance Print Def where
   prt i e = case e of
     DDef id ids expr -> prPrec i 0 (concatD [prt 0 id, prt 0 ids, doc (showString "="), prt 0 expr])
+  prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
 
@@ -212,6 +213,7 @@ instance Print SStmt where
   prt i e = case e of
     SDecl vdecl -> prPrec i 0 (concatD [prt 0 vdecl])
     SDef def -> prPrec i 0 (concatD [prt 0 def])
+  prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ";"), prt 0 xs]
 

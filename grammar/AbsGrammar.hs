@@ -58,14 +58,6 @@ data Expr
     | EType Expr Type
   deriving (Eq, Ord, Show, Read)
 
-gt, lt, ge, le, eq, neq :: RelOp
-gt = RelOp ">"
-lt = RelOp "<"
-ge = RelOp ">="
-le = RelOp "<="
-eq = RelOp "=="
-neq = RelOp "!="
-
 data Type
     = TBasic Basic
     | TIdent Ident

@@ -1,0 +1,7 @@
+
+concat :: [int] -> [int] -> [int];
+concat l1 l2 = match l1 with {
+    h:t -> h : concat t l2;
+    [] -> l2}
+
+//concat [1, 2, 3, 4] [5, 6, 7, 8]

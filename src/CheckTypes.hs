@@ -1,17 +1,18 @@
---v0.1 just basic types, static typing
 --TODO Unions should be commpatible with longer (but not shorter) ones with the same prefix
 {-# LANGUAGE FlexibleContexts #-} --for fresh
-module CheckTypes(
+module CheckTypes{-(
      TypeError
+    ,TStream
     ,TAlg
+    ,Env
+    ,emptyEnv
     ,solveExpr
     ,TBasic
     ,matchBasic
     ,inferProgram
-    ) where
+    )-} where
 
-
---TODO stream application
+--import Debug.Trace
 
 import AbsGrammar
 import PrintGrammar
@@ -30,11 +31,13 @@ data TypeError =
     | TypeError [TAlg] [TAlg] [Expr] 
     | WrongExpression Expr 
     | UnboundVariable Ident 
-    | NotConcreteType TAlg 
+    | NotConcreteType [Constraint] Ident TAlg 
     | UnsupportedType Type 
     | UndefinedType Ident
     | NotAStream Ident Expr
     | NotStreamField Ident Ident Expr
+    | NotInitializedStream Ident
+    | UnknownDefaultValue Ident
     | Bug String
 
 instance Show TypeError where
@@ -44,11 +47,13 @@ instance Show TypeError where
         TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e)
         WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) ++ "\n" ++ show e
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
-        NotConcreteType t -> "Not concrete type: " ++ show t
+        NotConcreteType cons (Ident ident) t -> "Not concrete type: " ++ show t ++ " in: " ++ ident ++ ". Equations: \n" ++ show (map (\(a, b, _) -> (a,b)) cons)
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
-        UndefinedType ident -> "Undefined type: " ++ show ident
+        UndefinedType (Ident ident) -> "Undefined type: " ++ ident
         NotAStream ident e -> show ident ++ " is not a stream in: " ++ (render $ prt 0 e)
         NotStreamField id1 id2 e -> show id2 ++ " is not field of " ++ show id1 ++ " in: " ++ (render $ prt 0 e)
+        NotInitializedStream (Ident ident) -> "Stream: " ++ ident ++ " has uninitialized values"
+        UnknownDefaultValue (Ident ident) -> "Unknown default value: " ++ ident
         Bug s -> "!!!BUG!!! " ++ s
 
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
@@ -193,8 +198,8 @@ inferDef x = case x of
         v <- case Map.lookup ident te of
             Just t -> return t
             Nothing -> fresh
-        t <- if idents == [] then withVal ident v $ solveExpr expr
-            else withVal ident v $ solveExpr (ELambda idents expr)
+        t <- local (liftStream (\_ -> Map.empty)) $ if idents == [] then withVal ident v $ solveExpr v ident expr
+            else withVal ident v $ solveExpr v ident (ELambda idents expr)
         insertVal ident t
 
 inferSStmt :: SStmt -> Infer Env
@@ -209,18 +214,35 @@ inferSStmt x = case x of
             else withVal ident v $ inferExpr (ELambda idents expr)
         insertVal ident t
 
+inferInits :: Def -> Infer ()
+inferInits (DDef ident idents expr) = do
+    ve <- asks venv
+    v <- case Map.lookup ident ve of
+        Just t -> return t
+        Nothing -> throwError $ UnknownDefaultValue ident
+    t <- if idents == [] then inferExpr expr
+        else inferExpr (ELambda idents expr)
+    tell [(v, t, expr)]
+
+
 inferStream :: Stream -> Infer Env
 inferStream x = case x of
     DStream ident idents sstmts1 sstmts2 defs -> do
+        let initsym = map (\(DDef ident _ _) -> ident) defs 
+        let initialized = foldl (\acc sst -> case sst of {
+            SDef (DDef ident _ _) -> acc && ident `elem` initsym;
+            _ -> acc}) True (sstmts1 ++ sstmts2)
+        if initialized then return () else throwError $ NotInitializedStream ident
         (env, cons) <- censor (\_ -> []) $ listen $ do 
             e0 <- asks (liftStream (\_ -> Map.empty))
-            _ <- foldM (\acc def -> local (\_ -> acc) (inferSStmt (SDef def))) e0 defs
             e1 <- foldM (\acc ident -> getEnv senv ident >>= (\s -> return acc{senv = Map.insert ident s (senv acc)})) e0  idents
             e2 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e1 sstmts1
-            foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e2 sstmts2
+            e3 <- foldM (\acc top -> local (\_ -> acc) (inferSStmt top)) e2 sstmts2
+            foldM (\_ def -> local (\_ -> e3) (inferInits def)) () defs
+            return e3
         s <- get
         sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
-        foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
+        foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType cons ident t) () sub
         let nenv = apply sub (venv env)
         let out = foldl (\acc sstmt -> case sstmt of {
             SDef (DDef ident _ _) -> Map.insert ident (nenv Map.! ident) acc;
@@ -530,11 +552,12 @@ occursCheck a t = a `Set.member` ftv t
 concreteType :: TAlg -> Bool
 concreteType = Set.null . ftv
 
-solveExpr :: Expr -> Infer TAlg
-solveExpr expr = do
+solveExpr :: TAlg -> Ident -> Expr -> Infer TAlg
+solveExpr etype ident expr = do
     (v, cons) <- censor (\_ -> []) $ listen $ inferExpr expr 
     s <- get
-    sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) cons) (map (\(_,y,_) -> y) cons) (map (\(_,_,z) -> z) cons)) s
-    foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType t) () sub
+    let ncons = (v, etype, expr):cons
+    sub <- lift $ evalStateT (unifyMany (map (\(x,_,_) -> x) ncons) (map (\(_,y,_) -> y) ncons) (map (\(_,_,z) -> z) ncons)) s
+    foldM (\_ t -> if concreteType t then return () else throwError $ NotConcreteType ncons ident t) () sub
     return $ apply sub v
 

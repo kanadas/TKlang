@@ -1,0 +1,30 @@
+
+head :: [char] -> char + void;
+head l = match l with {
+    h:t -> 1@h;
+    [] -> 2@()
+    };
+
+stream buffer
+input Input
+state
+    tail = tail;
+    buf :: [char];
+    buf = tail buf
+output out = head buf
+initial 
+    buf = "Hello world!", 
+    out = 2 @ (),
+    tail l = match l with {
+        h:t -> t;
+        [] -> []
+    };
+
+stream main
+input buffer
+state
+output print = match buffer.out with {
+    1@c -> c;
+    _ -> '0'
+    }
+initial print = '0'

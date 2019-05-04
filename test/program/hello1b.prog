@@ -1,0 +1,5 @@
+stream main
+input Input
+state
+output print = 'h'
+initial print = 'a'

@@ -85,8 +85,8 @@ SDef.           SStmt ::= Def ;
 
 DStream.        Stream ::= "stream" Ident "input" [Ident] "state" [SStmt] "output" [SStmt] "initial" [Def] ;
 
-separator nonempty SStmt ";" ;
-separator nonempty Def "," ;
+separator SStmt ";" ;
+separator Def "," ;
 
 comment "//" ;
 comment "/*" "*/" ;

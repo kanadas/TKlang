@@ -1,0 +1,17 @@
+stream buffer
+input Input
+state buf = match buf with {
+    h:t -> t;
+    [] -> []
+}
+output out = match buf with {
+    h:t -> 1 @ h;
+    [] -> 2 @ ()
+}
+initial buf = "Hello world!", out = 2 @ ();
+
+stream main
+input buffer
+state
+output print = buffer.out
+initial print = 0

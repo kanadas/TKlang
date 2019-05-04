@@ -185,9 +185,13 @@ SStmt : VDecl { AbsGrammar.SDecl $1 } | Def { AbsGrammar.SDef $1 }
 Stream :: { Stream }
 Stream : 'stream' Ident 'input' ListIdent 'state' ListSStmt 'output' ListSStmt 'initial' ListDef { AbsGrammar.DStream $2 $4 $6 $8 $10 }
 ListSStmt :: { [SStmt] }
-ListSStmt : SStmt { (:[]) $1 } | SStmt ';' ListSStmt { (:) $1 $3 }
+ListSStmt : {- empty -} { [] }
+          | SStmt { (:[]) $1 }
+          | SStmt ';' ListSStmt { (:) $1 $3 }
 ListDef :: { [Def] }
-ListDef : Def { (:[]) $1 } | Def ',' ListDef { (:) $1 $3 }
+ListDef : {- empty -} { [] }
+        | Def { (:[]) $1 }
+        | Def ',' ListDef { (:) $1 $3 }
 {
 
 returnM :: a -> Err a

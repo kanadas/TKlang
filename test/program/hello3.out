@@ -1,0 +1,3 @@
+program/hello3.prog
+Type mismatch: [(char+void)] and [int] in expression:
+0

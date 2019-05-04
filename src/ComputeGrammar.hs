@@ -1,6 +1,13 @@
 --v0.0.1 just basic types, dynamic typing
 {-# LANGUAGE MultiParamTypeClasses #-}
-module ComputeGrammar where
+module ComputeGrammar
+    {-(
+    compExpr
+    ,CompExcept
+    ,StreamNode
+    ,IEnv
+    ,REnv
+    ,compProgram)-} where
 
 --import Debug.Trace
 
@@ -23,6 +30,7 @@ data CompError =
     | NotMatched
     | NoMatch Expr Value
     | Bug String
+    | WrongMain
     deriving Eq
 
 instance Show CompError where
@@ -32,6 +40,7 @@ instance Show CompError where
         NotMatched -> "Not matched"
         NoMatch e v -> "No match for " ++ show v ++ " in: \n" ++ (render $ prt 0 e)
         Bug s -> "!!!BUG!!!: " ++ s
+        WrongMain -> "Main doesn't have \"print\" output, or it is not char"
 
 data CompExcept a = CompExcept {runComp :: Either CompError a} deriving Show
 
@@ -91,19 +100,48 @@ instance Show Value where
 
 type VEnv = Map Ident (CompExcept Value)
 
-data Env = Env {venv :: VEnv, sstate :: Map (Ident, Ident) Value, graph :: StreamNode}
+type RunStream = StateT REnv (ExceptT CompError IO) ()
 
-liftEnv :: (Map Ident (CompExcept Value) -> Map Ident (CompExcept Value)) -> Env -> Env
-liftEnv f e = Env {venv = f (venv e)}
+data StreamNode = StreamNode {
+    name :: Ident,
+    inputs :: [Ident], 
+    outs :: [Ident], 
+    run :: StreamNode -> RunStream}
 
-insertEnv :: Ident -> CompExcept Value -> Env -> Env
+instance Show StreamNode where
+    show (StreamNode n i o _) = "Stream (name = " ++ show n ++ ", inputs = " ++ show i ++ ", outs = " ++ show o
+
+data IEnv = IEnv {
+    st_venv :: VEnv, 
+    st_sstate :: Map (Ident, Ident) Value, 
+    graph :: Map Ident StreamNode}
+
+data REnv = REnv {
+    venv :: VEnv, 
+    sstate :: Map (Ident, Ident) Value, 
+    counts :: Map Ident Int,
+    edges :: Map (Ident, Ident) Bool, 
+    run_graph :: Map Ident StreamNode,
+    queue :: [Ident]}
+
+toREnv :: IEnv -> REnv
+toREnv e = REnv (st_venv e) Map.empty Map.empty Map.empty Map.empty []
+
+liftEnv :: (Map Ident (CompExcept Value) -> Map Ident (CompExcept Value)) -> REnv -> REnv
+liftEnv f e = e{venv = f (venv e)}
+
+insertEnv :: Ident -> CompExcept Value -> REnv -> REnv
 insertEnv i v = liftEnv $ Map.insert i v
 
-type Compute a = ReaderT Env CompExcept a
+liftIEnv :: (Map Ident (CompExcept Value) -> Map Ident (CompExcept Value)) -> IEnv -> IEnv
+liftIEnv f e = e{st_venv = f (st_venv e)}
 
-type ComputeEnv a = StateT Env CompExcept a
+insertIEnv :: Ident -> CompExcept Value -> IEnv -> IEnv
+insertIEnv i v = liftIEnv $ Map.insert i v
 
-data StreamNode = StreamNode {name :: Ident, inputs :: [StreamNode], count :: Integer, outs :: [StreamNode], run :: StateT Env CompExcept Value}
+type Compute a = ReaderT REnv CompExcept a
+
+type ComputeEnv a = StateT IEnv CompExcept a
 
 type Result = Compute Value
 
@@ -117,15 +155,15 @@ compBasic :: Basic -> String
 compBasic x = case x of
     Basic string -> string
 
-compProgram :: Program -> ComputeEnv ()
+compProgram :: Program -> ComputeEnv (Map (Ident, Ident) Value)
 compProgram x = case x of
-    Prog tops -> foldM (\_ top -> compTop top) () tops
+    Prog tops -> foldM (\acc top -> compTop top >>= return . (Map.union acc)) Map.empty tops
 
-compTop :: Top -> ComputeEnv ()
+compTop :: Top -> ComputeEnv (Map (Ident, Ident) Value)
 compTop x = case x of
-    TopVDecl _ -> return ()
-    TopTDecl _ -> return ()
-    TopDef def -> compDef def
+    TopVDecl _ -> return Map.empty
+    TopTDecl _ -> return Map.empty
+    TopDef def -> compDef def >> return Map.empty
     TopStream stream -> compStream stream
 
 compDef :: Def -> ComputeEnv ()
@@ -133,18 +171,80 @@ compDef x = case x of
     DDef ident idents expr -> do
         s <- get
         let e = if idents == [] then expr else ELambda idents expr
-        let f val = runReaderT (compExpr e) (insertEnv ident (f val) s)
+        let f val = runReaderT (compExpr e) (insertEnv ident (f val) (toREnv s))
         v <- lift $ f $ throw $ Bug "recursion"
-        put $ insertEnv ident (return v) s
+        put $ insertIEnv ident (return v) s
 
-compSStmt :: SStmt -> ComputeEnv ()
-compSStmt x = case x of
-    SDecl _ -> return ()
-    SDef def -> compDef def
+compSDef :: Ident -> Def -> Compute Value
 
-compStream :: Stream -> ComputeEnv ()
+--compSDef s_name (DDef ident _ expr) | trace (show s_name ++ "." ++ show ident ++ " = " ++ render (prt 0 expr)) False = undefined
+
+compSDef s_name x = case x of
+    DDef ident idents expr -> do
+        s <- ask
+        let e = if idents == [] then expr else ELambda idents expr
+        let old_v = sstate s Map.! (s_name, ident)
+        local (insertEnv ident (return old_v)) (compExpr e) 
+
+compSStmt :: Ident -> Map (Ident, Ident) Value -> SStmt -> Compute (Map (Ident, Ident) Value)
+compSStmt s_name acc x = case x of 
+    SDecl _ -> return acc
+    SDef def@(DDef id2 _ _) -> do
+        v <- compSDef s_name def 
+        return $ Map.insert (s_name, id2) v acc
+
+updateGraph :: Ident -> StreamNode -> Map (Ident, Ident) Value -> RunStream
+updateGraph ident this nsstate = do
+    s <- get
+
+    --liftIO $ putStrLn $ "updating graph: \n"-- ++ show (run_graph s)
+
+    let ns = foldl (\acc sid -> acc{
+        counts = Map.insert sid ((counts acc Map.! sid) - 1) (counts acc)
+        , edges = Map.insert (ident, sid) True (edges acc)
+        , queue = if counts acc Map.! sid == 1 then (queue acc) ++ [sid] else queue acc})
+            s (filter (\e -> Map.lookup (ident, e) (edges s) /= Just True) (outs this))
+    let ns2 = foldl (\acc e -> acc{edges = Map.insert (e, ident) False (edges acc)}) ns (inputs this)
+    put ns2{counts = Map.insert ident (length $ inputs this) (counts ns2), sstate = nsstate}
+
+    
+    --liftIO $ putStrLn $ "Stream: " ++ show ident
+    --liftIO $ putStrLn $ "counts: " ++ show (counts ns2)
+    --liftIO $ putStrLn $ "edges: " ++ show (edges ns2)
+    --liftIO $ putStrLn $ "queue: " ++ show (queue ns2)
+    --liftIO $ putStrLn $ ""
+
+    case queue ns2 of
+        [] -> return ()
+        (h:t) -> let next = (run_graph ns2) Map.! h in
+            modify (\state -> state{queue = t}) >> (run next) next
+
+runStream :: Ident -> [SStmt] -> [SStmt] -> StreamNode -> RunStream
+runStream ident sstmts1 sstmts2 this = do 
+    s <- get
+    
+    --liftIO $ putStrLn $ "Running stream: " ++ show ident
+    --liftIO $ putStrLn $ "Inputs: " ++ show (inputs this)
+    --liftIO $ putStrLn $ "Outs: " ++ show (outs this)
+    --liftIO $ putStrLn $ "SState: " ++ show (Map.keys $ sstate s)
+
+    let streamvals = Map.map return $ Map.mapKeys snd $ Map.filterWithKey (\(a, _) _ -> a == ident) (sstate s)
+    nsstate <- lift $ ExceptT $ return $ runComp $ runReaderT (foldM (compSStmt ident) (sstate s) sstmts1) s{venv = Map.union streamvals (venv s)}
+    nsstate2 <- lift $ ExceptT $ return $ runComp $ runReaderT (foldM (compSStmt ident) nsstate sstmts2) s{venv = Map.union streamvals (venv s)}
+    updateGraph ident this nsstate2
+
+compStream :: Stream -> ComputeEnv (Map (Ident, Ident) Value)
 compStream x = case x of
-    DStream ident idents sstmts1 sstmts2 defs -> throwError $ Undefined $ show x
+    DStream ident idents sstmts1 sstmts2 defs -> do
+        g <- gets graph
+        let this = StreamNode ident idents [] (runStream ident sstmts1 sstmts2)
+        let ng = foldl (\gr e -> Map.update (\n -> Just n{outs = ident:(outs n)}) e gr) g idents
+        state <- get
+        put state{graph = Map.insert ident this ng}
+        foldM (\acc (DDef ident2 idents2 expr) -> 
+            let e = if idents2 == [] then expr else ELambda idents2 expr in do
+            v <- lift (runReaderT (compExpr e) (toREnv state)) 
+            return $ Map.insert (ident,ident2) v acc) Map.empty defs
 
 compExpr :: Expr -> Result
 compExpr x = do
@@ -279,6 +379,10 @@ compPattern (VUnion 1 (VTuple [h1,t1])) (PList (h2:t2)) = do
 compPattern (VUnion 2 (VVoid)) (PString "") = return Map.empty
 compPattern (VUnion 1 (VTuple [c1, t1])) (PString (c2:t2)) | c1 == VChar c2 = 
     compPattern t1 (PString t2)
+compPattern (VUnion 1 (VTuple [h1, t1])) (PListHT h2 t2) = do
+    e1 <- compPattern h1 h2
+    e2 <- compPattern t1 t2
+    concatEnv e1 e2
 compPattern v (PIdent ident) = return $ Map.singleton ident (return v)
 compPattern _ PAny = return $ Map.empty
 compPattern _ _ = lift $ throw NotMatched
