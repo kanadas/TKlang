@@ -45,9 +45,9 @@ instance Show TypeError where
         Undefined e -> "Undefined expression: " ++ e
         TypeError t1 t2 [] -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 
         TypeError t1 t2 e -> "Type mismatch: " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n" ++ (render $ prt 0 e)
-        WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) ++ "\n" ++ show e
+        WrongExpression e -> "Wrong expression: " ++ (render $ prt 0 e) -- ++ "\n" ++ show e
         UnboundVariable (Ident ident) -> "Unbound variable " ++ ident
-        NotConcreteType cons (Ident ident) t -> "Not concrete type: " ++ show t ++ " in: " ++ ident ++ ". Equations: \n" ++ show (map (\(a, b, _) -> (a,b)) cons)
+        NotConcreteType cons (Ident ident) t -> "Not concrete type: " ++ show t ++ " in: " ++ ident -- ++ ". Equations: \n" ++ show (map (\(a, b, _) -> (a,b)) cons)
         UnsupportedType t -> "Unsupported type: " ++ (render $ prt 0 t)
         UndefinedType (Ident ident) -> "Undefined type: " ++ ident
         NotAStream ident e -> show ident ++ " is not a stream in: " ++ (render $ prt 0 e)
@@ -79,9 +79,9 @@ type Mapping = Map Ident TAlg
 data TAlg = Con TBasic 
         | Var TVar
         | Prod [TAlg] 
-        | Union [TAlg]
+        | Union [TAlg] Bool
         | Fun TAlg TAlg
-        | Rec TVar TAlg --TVar needs to be fresh
+        | Rec TVar TAlg 
         deriving Eq
 
 instance Show TAlg where
@@ -89,9 +89,9 @@ instance Show TAlg where
         Con b -> show b
         Var (TV n) -> "#" ++ show n
         Prod l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "*") "" l) ++ ")"
-        Union l -> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "+") "" l) ++ ")"
+        Union l _-> "(" ++ (init $ foldl (\s t -> s ++ (show t) ++ "+") "" l) ++ ")"
         Fun a b -> show a ++ "->" ++ show b
-        Rec v t -> "(" ++ show v ++ "." ++ show t ++ ")"
+        Rec (TV v) t -> "(rec #" ++ show v ++ "." ++ show t ++ ")"
 
 data TStream = TStream [Ident] (Map Ident TAlg)
 
@@ -160,7 +160,7 @@ emptyUnion n
 listT :: TAlg -> Infer TAlg
 listT t = do
     v <- freshV
-    return $ Rec v (Union [Prod [t, Var v], Con TVoid])
+    return $ Rec v (Union [Prod [t, Var v], Con TVoid] False)
 
 inferProgram :: Program -> Infer ()
 inferProgram x = case x of
@@ -360,7 +360,7 @@ inferExpr x =
             | otherwise -> do
                 l <- emptyUnion (n - 1)
                 t <- inferExpr expr2
-                if n == 1 then return $ Union (t : l) else return $ Union $ l ++ [t]
+                if n == 1 then return $ Union (t : l) True else return $ Union (l ++ [t]) True
         EIf expr1 expr2 expr3 -> do
             t1 <- inferExpr expr1
             t2 <- inferExpr expr2
@@ -415,8 +415,8 @@ inferType x = case x of
         t1 <- inferType type_1
         t2 <- inferType type_2
         case t1 of
-            Union l -> return $ Union $ l ++ [t1]
-            _ -> return $ Union [t1, t2]
+            Union l _ -> return $ Union (l ++ [t1]) False
+            _ -> return $ Union [t1, t2] False
     TFun type_1 type_2 -> do
         t1 <- inferType type_1
         t2 <- inferType type_2
@@ -480,7 +480,7 @@ inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
         | otherwise -> do
             l <- emptyUnion (n - 1)
             (e, t) <- inferPattern expr pattern
-            if n == 1 then return (e, Union (t : l)) else return (e, Union $ l ++ [t])
+            if n == 1 then return (e, Union (t : l) True) else return (e, Union (l ++ [t]) True)
 
 type Subst = Map TVar TAlg
 
@@ -494,14 +494,14 @@ instance Substitutable TAlg where
     apply _ (Con a) = Con a
     apply s t@(Var a) = Map.findWithDefault t a s
     apply s (Prod l) = Prod $ apply s l
-    apply s (Union l) = Union $ apply s l
+    apply s (Union l b) = Union (apply s l) b
     apply s (Fun t1 t2) = Fun (apply s t1) (apply s t2)
     apply s (Rec x t) = Rec x (apply s t)
 
     ftv (Con _) = Set.empty
     ftv (Var a) = Set.singleton a
     ftv (Prod l) = ftv l
-    ftv (Union l) = ftv l
+    ftv (Union l _) = ftv l
     ftv (Fun t1 t2) = Set.union (ftv t1) (ftv t2)
     ftv (Rec v t) = Set.delete v (ftv t)
 
@@ -519,7 +519,10 @@ compose s1 s2 = Map.map (apply s1) s2 `Map.union` s1
 
 unify :: TAlg -> TAlg -> Expr -> Solve Subst
 unify (Prod l1) (Prod l2) e = unifyMany l1 l2 (replicate (length l2) e) 
-unify (Union l1) (Union l2) e = unifyMany l1 l2 (replicate (length l2) e)
+unify (Union l1 b1) (Union l2 b2) e = do
+    ll1 <- if length l1 < length l2 && b1 then (replicateM (length l2 - length l1) fresh) >>= return . (l1++) else return l1
+    ll2 <- if length l2 < length l1 && b2 then (replicateM (length l1 - length l2) fresh) >>= return . (l2++) else return l2 
+    unifyMany ll1 ll2 (replicate (length l2) e)
 unify (Fun l1 r1) (Fun l2 r2) e = unifyMany [l1, r1] [l2, r2] [e, e]
 unify (Var a) t _ = bind a t
 unify t (Var a) _ = bind a t

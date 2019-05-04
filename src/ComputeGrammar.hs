@@ -106,7 +106,7 @@ data StreamNode = StreamNode {
     name :: Ident,
     inputs :: [Ident], 
     outs :: [Ident], 
-    run :: StreamNode -> RunStream}
+    run :: RunStream}
 
 instance Show StreamNode where
     show (StreamNode n i o _) = "Stream (name = " ++ show n ++ ", inputs = " ++ show i ++ ", outs = " ++ show o
@@ -122,10 +122,11 @@ data REnv = REnv {
     counts :: Map Ident Int,
     edges :: Map (Ident, Ident) Bool, 
     run_graph :: Map Ident StreamNode,
-    queue :: [Ident]}
+    queue :: [Ident],
+    generators :: [Ident]}
 
 toREnv :: IEnv -> REnv
-toREnv e = REnv (st_venv e) Map.empty Map.empty Map.empty Map.empty []
+toREnv e = REnv (st_venv e) Map.empty Map.empty Map.empty Map.empty [] []
 
 liftEnv :: (Map Ident (CompExcept Value) -> Map Ident (CompExcept Value)) -> REnv -> REnv
 liftEnv f e = e{venv = f (venv e)}
@@ -206,7 +207,6 @@ updateGraph ident this nsstate = do
             s (filter (\e -> Map.lookup (ident, e) (edges s) /= Just True) (outs this))
     let ns2 = foldl (\acc e -> acc{edges = Map.insert (e, ident) False (edges acc)}) ns (inputs this)
     put ns2{counts = Map.insert ident (length $ inputs this) (counts ns2), sstate = nsstate}
-
     
     --liftIO $ putStrLn $ "Stream: " ++ show ident
     --liftIO $ putStrLn $ "counts: " ++ show (counts ns2)
@@ -215,13 +215,17 @@ updateGraph ident this nsstate = do
     --liftIO $ putStrLn $ ""
 
     case queue ns2 of
-        [] -> return ()
+        [] -> case generators ns2 of
+            [] -> return ()
+            (h:t) -> let next = (run_graph ns2) Map.! h in
+                modify (\state -> state{generators = t ++ [h]}) >> run next
         (h:t) -> let next = (run_graph ns2) Map.! h in
-            modify (\state -> state{queue = t}) >> (run next) next
+            modify (\state -> state{queue = t}) >> run next
 
-runStream :: Ident -> [SStmt] -> [SStmt] -> StreamNode -> RunStream
-runStream ident sstmts1 sstmts2 this = do 
+runStream :: Ident -> [SStmt] -> [SStmt] -> RunStream
+runStream ident sstmts1 sstmts2 = do 
     s <- get
+    let this = run_graph s Map.! ident
     
     --liftIO $ putStrLn $ "Running stream: " ++ show ident
     --liftIO $ putStrLn $ "Inputs: " ++ show (inputs this)

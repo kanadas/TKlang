@@ -1,0 +1,8 @@
+
+stream main
+input Input
+state 
+output 
+    print = if print == (2@()) then 1@Input.read else 2@()
+initial 
+    print = 2@()

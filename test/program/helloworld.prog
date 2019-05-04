@@ -1,0 +1,24 @@
+
+tail :: [char] -> [char];
+tail l = match l with {
+    h:t -> t;
+    [] -> []
+};
+
+stream main
+input
+state buffer = tail buffer
+output 
+    print = match buffer with {
+        1@(h,t) -> h;
+        _ -> '0'
+        };
+    exit = match buffer with {
+        [_] -> true;
+        2@() -> true;
+        _ -> false
+    }
+initial 
+    print = '0',
+    buffer = "Hello World!",
+    exit = false
