@@ -1,0 +1,24 @@
+/*Two ways to count factorial
+Features:
+    recursive let .. in
+    anonymous functions
+    higher order functions (f takes function and integer)
+    paritial application (f f)
+    recursive type reconstruction (f have type: a = a -> int -> int)
+*/
+
+
+fact1 = let f = (\f n -> if n > 1 then n * f f (n - 1) else n) in f f;
+
+fact2 n = if n <= 1 then 1 else n * fact2 (n-1);
+
+stream main
+input
+state
+output
+    print = if fact1 10 == 3628800 & fact2 10 == 3628800 then 'y' else 'n';
+    exit = true;
+initial
+    print = '0',
+    exit = true
+

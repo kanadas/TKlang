@@ -9,7 +9,7 @@ module ComputeGrammar
     ,REnv
     ,compProgram)-} where
 
---import Debug.Trace
+import Debug.Trace
 
 import AbsGrammar
 import PrintGrammar
@@ -73,7 +73,7 @@ instance MonadError CompError CompExcept  where
 data Value = VInt Integer 
             | VChar Char 
             | VBool Bool 
-            | VVoid 
+            | VUnit 
             | VFun (Value -> CompExcept Value)
             | VTuple [Value]
             | VUnion Integer Value
@@ -83,7 +83,7 @@ instance Eq Value where
         (VInt a, VInt b) -> a == b
         (VChar a, VChar b) -> a == b
         (VBool a, VBool b) -> a == b
-        (VVoid, VVoid) -> True
+        (VUnit, VUnit) -> True
         (VTuple a, VTuple b) -> a == b
         (VUnion i1 a, VUnion i2 b) -> i1 == i2 && a == b
         (_, _) -> False
@@ -93,7 +93,7 @@ instance Show Value where
         VInt i -> show i
         VChar c -> show c
         VBool b -> show b
-        VVoid -> "()"
+        VUnit -> "()"
         VFun _ -> "Function"
         VTuple vl -> "(" ++ foldl (\s v -> s ++ show v ++ ", ") "" vl ++ ")"
         VUnion n v -> show n ++ "@" ++ show v
@@ -258,7 +258,7 @@ compExpr x = do
         EInt integer -> return $ VInt integer
         EChar char -> return $ VChar char
         EString string -> return $ 
-            foldr (\e acc -> VUnion 1 (VTuple [VChar e, acc])) (VUnion 2 VVoid) string
+            foldr (\e acc -> VUnion 1 (VTuple [VChar e, acc])) (VUnion 2 VUnit) string
         EIdent ident -> do
             s <- asks venv
             lift $ s Map.! ident
@@ -267,13 +267,13 @@ compExpr x = do
             return $ s Map.! (id1, id2)
         ETrue -> return $ VBool True
         EFalse -> return $ VBool False
-        EVoid -> return $ VVoid
-        EEmpty -> return $ (VUnion 2 VVoid)
+        EUnit -> return $ VUnit
+        EEmpty -> return $ (VUnion 2 VUnit)
         ENot expr -> do
             (VBool b) <- compExpr expr
             return $ VBool $ not b
         ETuple expr exprs -> VTuple <$> mapM compExpr (expr:exprs) 
-        EList exprs -> foldM (\acc expr -> do e <- compExpr expr; return $ VUnion 1 (VTuple [e, acc])) (VUnion 2 VVoid) (reverse exprs)
+        EList exprs -> foldM (\acc expr -> do e <- compExpr expr; return $ VUnion 1 (VTuple [e, acc])) (VUnion 2 VUnit) (reverse exprs)
         ELambda idents expr -> do
             s <- ask
             case idents of
@@ -306,7 +306,7 @@ compExpr x = do
             e2 <- compExpr expr2
             let con a b = case a of { 
                 (VUnion 1 (VTuple [e, t])) -> VUnion 1 (VTuple [e, con t b]); 
-                (VUnion 2 VVoid) -> b }
+                (VUnion 2 VUnit) -> b }
             return $ con e1 e2
         ENeg expr -> do
             (VInt i) <- compExpr expr
@@ -322,8 +322,8 @@ compExpr x = do
                 return $ VBool ( case o of
                     ">" -> i1 > i2
                     "<" -> i1 < i2
-                    ">=" -> i1 <= i2
-                    "<=" -> i1 >= i2 ) 
+                    ">=" -> i1 >= i2
+                    "<=" -> i1 <= i2 ) 
         EAnd expr1 expr2 -> do
             (VBool b1) <- compExpr expr1
             (VBool b2) <- compExpr expr2
@@ -371,16 +371,16 @@ compPattern (VInt i1) (PInt i2) | i1 == i2 = return Map.empty
 compPattern (VBool b1) (PTrue) | b1 = return Map.empty
 compPattern (VBool b1) (PFalse) | not b1 = return Map.empty
 compPattern (VChar c1) (PChar c2) | c1 == c2 = return Map.empty
-compPattern VVoid PVoid = return Map.empty
-compPattern (VUnion 2 VVoid) PEmpty = return Map.empty
+compPattern VUnit PUnit = return Map.empty
+compPattern (VUnion 2 VUnit) PEmpty = return Map.empty
 compPattern (VTuple l1) (PTuple pat ps) = 
     foldM (\acc (v, p) -> compPattern v p >>= concatEnv acc) (Map.empty) (zip l1 (pat:ps))
 compPattern (VUnion n1 p1) (PUnion n2 p2) | n1 == n2 = compPattern p1 p2
 compPattern (VUnion 1 (VTuple [h1,t1])) (PList (h2:t2)) = do
     e1 <- compPattern h1 h2
-    e2 <- if t2 == [] then compPattern t1 (PUnion 2 PVoid) else compPattern t1 (PList t2)
+    e2 <- if t2 == [] then compPattern t1 (PUnion 2 PUnit) else compPattern t1 (PList t2)
     concatEnv e1 e2
-compPattern (VUnion 2 (VVoid)) (PString "") = return Map.empty
+compPattern (VUnion 2 (VUnit)) (PString "") = return Map.empty
 compPattern (VUnion 1 (VTuple [c1, t1])) (PString (c2:t2)) | c1 == VChar c2 = 
     compPattern t1 (PString t2)
 compPattern (VUnion 1 (VTuple [h1, t1])) (PListHT h2 t2) = do

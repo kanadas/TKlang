@@ -1,0 +1,29 @@
+/*Features:
+    reactive Output: 
+        printing by setting print output in main stream
+        exiting by setting exit output in main stream
+    list type syntax sugar, and pattern matching (type [a] = (a*[a]) + unit)
+*/
+
+tail :: [char] -> [char];
+tail l = match l with {
+    h:t -> t;
+    [] -> []
+};
+
+stream main
+input
+state buffer = tail buffer
+output 
+    print = match buffer with {
+        1@(h,t) -> h
+        };
+    exit = match buffer with {
+        [_] -> true;
+        2@() -> true;
+        _ -> false
+    }
+initial 
+    print = '0',
+    buffer = "Hello World!",
+    exit = false

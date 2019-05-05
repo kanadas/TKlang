@@ -42,19 +42,18 @@ import ErrM
   'in' { PT _ (TS _ 27) }
   'initial' { PT _ (TS _ 28) }
   'input' { PT _ (TS _ 29) }
-  'is' { PT _ (TS _ 30) }
-  'let' { PT _ (TS _ 31) }
-  'match' { PT _ (TS _ 32) }
-  'output' { PT _ (TS _ 33) }
-  'state' { PT _ (TS _ 34) }
-  'stream' { PT _ (TS _ 35) }
-  'then' { PT _ (TS _ 36) }
-  'true' { PT _ (TS _ 37) }
-  'type' { PT _ (TS _ 38) }
-  'with' { PT _ (TS _ 39) }
-  '{' { PT _ (TS _ 40) }
-  '|' { PT _ (TS _ 41) }
-  '}' { PT _ (TS _ 42) }
+  'let' { PT _ (TS _ 30) }
+  'match' { PT _ (TS _ 31) }
+  'output' { PT _ (TS _ 32) }
+  'state' { PT _ (TS _ 33) }
+  'stream' { PT _ (TS _ 34) }
+  'then' { PT _ (TS _ 35) }
+  'true' { PT _ (TS _ 36) }
+  'type' { PT _ (TS _ 37) }
+  'with' { PT _ (TS _ 38) }
+  '{' { PT _ (TS _ 39) }
+  '|' { PT _ (TS _ 40) }
+  '}' { PT _ (TS _ 41) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -85,7 +84,7 @@ Top : VDecl { AbsGrammar.TopVDecl $1 }
 VDecl :: { VDecl }
 VDecl : Ident '::' Type { AbsGrammar.DVDecl $1 $3 }
 TDecl :: { TDecl }
-TDecl : 'type' Ident 'is' Type { AbsGrammar.DTDecl $2 $4 }
+TDecl : 'type' Ident '=' Type { AbsGrammar.DTDecl $2 $4 }
 Def :: { Def }
 Def : Ident ListIdent '=' Expr { AbsGrammar.DDef $1 $2 $4 }
 Expr11 :: { Expr }
@@ -96,7 +95,7 @@ Expr11 : Integer { AbsGrammar.EInt $1 }
        | QIdent { AbsGrammar.EQual $1 }
        | 'true' { AbsGrammar.ETrue }
        | 'false' { AbsGrammar.EFalse }
-       | '()' { AbsGrammar.EVoid }
+       | '()' { AbsGrammar.EUnit }
        | '[]' { AbsGrammar.EEmpty }
        | '!' Expr11 { AbsGrammar.ENot $2 }
        | '(' Expr ',' ListExpr ')' { AbsGrammar.ETuple $2 $4 }
@@ -117,17 +116,17 @@ Expr8 : Expr8 '+' Expr9 { AbsGrammar.EAdd $1 $3 }
 Expr7 :: { Expr }
 Expr7 : '-' Expr7 { AbsGrammar.ENeg $2 } | Expr8 { $1 }
 Expr6 :: { Expr }
-Expr6 : Expr6 RelOp Expr7 { AbsGrammar.ERel $1 $2 $3 }
+Expr6 : Integer '@' Expr7 { AbsGrammar.EUnion $1 $3 }
       | Expr7 { $1 }
 Expr5 :: { Expr }
-Expr5 : Expr5 '&' Expr6 { AbsGrammar.EAnd $1 $3 } | Expr6 { $1 }
+Expr5 : Expr5 RelOp Expr6 { AbsGrammar.ERel $1 $2 $3 }
+      | Expr6 { $1 }
 Expr4 :: { Expr }
-Expr4 : Expr4 '|' Expr5 { AbsGrammar.EOr $1 $3 } | Expr5 { $1 }
+Expr4 : Expr4 '&' Expr5 { AbsGrammar.EAnd $1 $3 } | Expr5 { $1 }
 Expr3 :: { Expr }
-Expr3 : Expr3 ':' Expr4 { AbsGrammar.EAppend $1 $3 } | Expr4 { $1 }
+Expr3 : Expr3 '|' Expr4 { AbsGrammar.EOr $1 $3 } | Expr4 { $1 }
 Expr2 :: { Expr }
-Expr2 : Integer '@' Expr3 { AbsGrammar.EUnion $1 $3 }
-      | Expr3 { $1 }
+Expr2 : Expr2 ':' Expr3 { AbsGrammar.EAppend $1 $3 } | Expr3 { $1 }
 Expr1 :: { Expr }
 Expr1 : 'if' Expr 'then' Expr 'else' Expr1 { AbsGrammar.EIf $2 $4 $6 }
       | 'let' Ident '=' Expr 'in' Expr1 { AbsGrammar.ELet $2 $4 $6 }
@@ -167,7 +166,7 @@ Pattern2 : Ident { AbsGrammar.PIdent $1 }
          | 'true' { AbsGrammar.PTrue }
          | 'false' { AbsGrammar.PFalse }
          | '[]' { AbsGrammar.PEmpty }
-         | '()' { AbsGrammar.PVoid }
+         | '()' { AbsGrammar.PUnit }
          | '(' Pattern ')' { $2 }
 Pattern1 :: { Pattern }
 Pattern1 : Pattern1 ':' Pattern2 { AbsGrammar.PListHT $1 $3 }

@@ -59,7 +59,7 @@ runOutputNode = do
     case Map.lookup (Ident "main", Ident "print") (sstate s) of
         Just (VChar c) -> liftIO $ putChar c
         Just (VUnion 1 (VChar c)) -> liftIO $ putChar c
-        Just (VUnion 2 VVoid) -> return ()
+        Just (VUnion 2 VUnit) -> return ()
         _ -> throwError WrongMain
     --exit field in main stream exits program
     if Map.lookup (Ident "main", Ident "exit") (sstate s) == Just (VBool True) then 
@@ -88,8 +88,8 @@ outputNode = StreamNode (Ident "Output") [Ident "main"] [] runOutputNode
 
 startProcessing :: VEnv -> Map (Ident, Ident) Value -> Map Ident Int -> Map Ident StreamNode->IO ()
 startProcessing svenv st_sstate scounts sgraph = do
-    let gens0 = foldl (\acc (StreamNode ident ins outs _) -> if ins == [] && outs /= [] then ident:acc else acc) [] sgraph
-    let gens = if gens0 /= [Ident "Input"] then filter (/=(Ident "Input")) gens0 else gens0
+    let gens = foldl (\acc (StreamNode ident ins outs _) -> if ins == [] && outs /= [] then ident:acc else acc) [] sgraph
+--    let gens = if gens0 /= [Ident "Input"] then filter (/=(Ident "Input")) gens0 else gens0
     if gens == [] then putStrLn "Nothing to do..." >> exitSuccess else do
         res <- runExceptT $ evalStateT (run $ sgraph Map.! last gens) 
             (REnv svenv st_sstate scounts Map.empty sgraph [] gens) 
@@ -113,7 +113,7 @@ putStrV :: Verbosity -> String -> IO ()
 putStrV v s = when (v > 1) $ putStrLn s
 
 runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= runTree v p
+runFile v p f = readFile f >>= runTree v p
 
 runTree :: Verbosity -> ParseFun Program -> String -> IO ()
 runTree v p s = 
@@ -147,13 +147,12 @@ usage = do
 
 main :: IO ()
 main = do
-  args <- getArgs
-  case args of
-    ["--help"] -> usage
---    [] -> getContents >>= runTree 2 pProgram
-    [] -> usage
-    "-s":fs -> mapM_ (runFile 0 pProgram) fs
-    fs -> mapM_ (runFile 2 pProgram) fs
+    args <- getArgs
+    case args of
+        ["--help"] -> usage
+        [] -> usage
+        "-s":fs -> mapM_ (runFile 0 pProgram) fs
+        fs -> mapM_ (runFile 2 pProgram) fs
 
 
 

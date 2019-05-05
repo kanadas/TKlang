@@ -12,7 +12,7 @@ module CheckTypes{-(
     ,inferProgram
     )-} where
 
---import Debug.Trace
+import Debug.Trace
 
 import AbsGrammar
 import PrintGrammar
@@ -58,21 +58,21 @@ instance Show TypeError where
 
 newtype TVar = TV Integer deriving (Show, Eq, Ord)
 
-data TBasic = TInt | TChar | TBool | TVoid deriving Eq
+data TBasic = TInt | TChar | TBool | TUnit deriving Eq
 
 instance Show TBasic where
     show t = case t of
         TInt -> "int"
         TChar -> "char"
         TBool -> "bool"
-        TVoid -> "void"
+        TUnit -> "unit"
 
 matchBasic :: Basic -> TBasic
 matchBasic (Basic s) = case s of
     "int" -> TInt
     "char" -> TChar
     "bool" -> TBool
-    "void" -> TVoid
+    "unit" -> TUnit
 
 type Mapping = Map Ident TAlg
 
@@ -160,7 +160,7 @@ emptyUnion n
 listT :: TAlg -> Infer TAlg
 listT t = do
     v <- freshV
-    return $ Rec v (Union [Prod [t, Var v], Con TVoid] False)
+    return $ Rec v (Union [Prod [t, Var v], Con TUnit] False)
 
 inferProgram :: Program -> Infer ()
 inferProgram x = case x of
@@ -200,7 +200,7 @@ inferDef x = case x of
             Nothing -> fresh
         t <- local (liftStream (\_ -> Map.empty)) $ if idents == [] then withVal ident v $ solveExpr v ident expr
             else withVal ident v $ solveExpr v ident (ELambda idents expr)
-        insertVal ident t
+        if concreteType v then insertVal ident v else insertVal ident t
 
 inferSStmt :: SStmt -> Infer Env
 inferSStmt x = case x of
@@ -212,6 +212,7 @@ inferSStmt x = case x of
             Nothing -> fresh
         t <- if idents == [] then withVal ident v $ inferExpr expr
             else withVal ident v $ inferExpr (ELambda idents expr)
+        tell [(v, t, expr)]
         insertVal ident t
 
 inferInits :: Def -> Infer ()
@@ -265,7 +266,7 @@ inferExpr x =
                 Nothing -> throwError $ NotStreamField id1 id2 x
         ETrue -> return $ Con TBool
         EFalse -> return $ Con TBool
-        EVoid -> return $ Con TVoid
+        EUnit -> return $ Con TUnit
         EEmpty -> do
             v <- fresh
             listT v
@@ -332,7 +333,7 @@ inferExpr x =
         ERel expr1 relop expr2 -> do
             t1 <- inferExpr expr1
             t2 <- inferExpr expr2
-            if relop /= eq then
+            if relop /= (RelOp "==") && relop /= (RelOp "!=") then
                 addCon t1 (Con TInt) >>
                 addCon t2 (Con TInt)
             else addCon t1 t2
@@ -415,7 +416,7 @@ inferType x = case x of
         t1 <- inferType type_1
         t2 <- inferType type_2
         case t1 of
-            Union l _ -> return $ Union (l ++ [t1]) False
+            Union l _ -> return $ Union (l ++ [t2]) False
             _ -> return $ Union [t1, t2] False
     TFun type_1 type_2 -> do
         t1 <- inferType type_1
@@ -463,7 +464,7 @@ inferPattern expr x = let addCon a b = tell [(a, b, expr)] in case x of
     PChar _ -> return (Map.empty, Con TChar)
     PTrue -> return (Map.empty, Con TBool)
     PFalse -> return (Map.empty, Con TBool)
-    PVoid -> return (Map.empty, Con TVoid)
+    PUnit -> return (Map.empty, Con TUnit)
     PEmpty -> do
         v <- fresh
         l <- listT v
@@ -534,6 +535,9 @@ unify t2@(Rec v t) t1 e = unify t1 (apply (Map.singleton v t2) t) e
 unify t1 t2 e = throwError $ TypeError [t1] [t2] [e]
 
 unifyMany :: [TAlg] -> [TAlg] -> [Expr] -> Solve Subst
+
+--unifyMany t1 t2 _ | trace (foldl (++) "" (zipWith (\a b -> show a ++ " , " ++ show b ++ "\n") t1 t2)) False = undefined
+
 unifyMany [] [] _ = return $ Map.empty
 unifyMany (t1 : r1) (t2 : r2) (e : et) = do
     s1 <- unify t1 t2 e

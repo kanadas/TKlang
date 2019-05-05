@@ -45,7 +45,7 @@ transExpr x = case x of
   EQual qident -> failure x
   ETrue -> failure x
   EFalse -> failure x
-  EVoid -> failure x
+  EUnit -> failure x
   EEmpty -> failure x
   ENot expr -> failure x
   ETuple expr exprs -> failure x
@@ -58,11 +58,11 @@ transExpr x = case x of
   ESub expr1 expr2 -> failure x
   EConcat expr1 expr2 -> failure x
   ENeg expr -> failure x
+  EUnion integer expr -> failure x
   ERel expr1 relop expr2 -> failure x
   EAnd expr1 expr2 -> failure x
   EOr expr1 expr2 -> failure x
   EAppend expr1 expr2 -> failure x
-  EUnion integer expr -> failure x
   EIf expr1 expr2 expr3 -> failure x
   ELet ident expr1 expr2 -> failure x
   EMatch expr alternatives -> failure x
@@ -90,7 +90,7 @@ transPattern x = case x of
   PTrue -> failure x
   PFalse -> failure x
   PEmpty -> failure x
-  PVoid -> failure x
+  PUnit -> failure x
   PListHT pattern1 pattern2 -> failure x
   PUnion integer pattern -> failure x
 transQIdent :: QIdent -> Result

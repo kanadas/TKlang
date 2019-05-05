@@ -1,0 +1,48 @@
+/*This program for every 3 characters in input prints two characters from buffer.buf and discards third. So it should output 'ababababab#' and exit.
+Features:
+    chaining multiple streams
+    cyclic running generators (streams without input)
+    forcing to read next character by setting break output in main
+*/
+
+head :: [char] -> char + unit;
+head l = match l with {
+    h:t -> 1@h;
+    [] -> 2@()
+    };
+
+stream buffer
+input Input
+state
+    tail = tail;
+    buf :: [char];
+    buf = tail buf
+output out = head buf
+initial 
+    buf = "abcabcabcabcabc", 
+    out = 2 @ (),
+    tail l = match l with {
+        h:t -> t;
+        [] -> []
+    };
+
+stream counter
+input
+state
+output cnt = cnt + 1
+initial cnt = 0;
+
+stream main
+input buffer counter
+state
+output print = match buffer.out with {
+    1@c -> c;
+    _ -> '#'
+    };
+    break = 2 * (counter.cnt / 2) == counter.cnt;
+    exit = counter.cnt > 10
+initial 
+    print = '0',
+    break = false,
+    exit = false
+    

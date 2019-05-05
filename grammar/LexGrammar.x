@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \; | \: \: | \= | \( \) | \[ \] | \! | \( | \, | \) | \[ | \] | \( \\ | \- \> | \* | \/ | \+ | \- | \+ \+ | \& | \| | \: | \@ | \{ | \} | \_ | \.
+   \; | \: \: | \= | \( \) | \[ \] | \! | \( | \, | \) | \[ | \] | \( \\ | \- \> | \* | \/ | \+ | \- | \+ \+ | \@ | \& | \| | \: | \{ | \} | \_ | \.
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -31,7 +31,7 @@ $u = [\0-\255]          -- universal: any character
 $white+ ;
 @rsyms { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 \> | \< | \< \= | \> \= | \= \= | \! \= { tok (\p s -> PT p (eitherResIdent (T_RelOp . share) s)) }
-i n t | b o o l | c h a r | v o i d { tok (\p s -> PT p (eitherResIdent (T_Basic . share) s)) }
+i n t | b o o l | c h a r | u n i t { tok (\p s -> PT p (eitherResIdent (T_Basic . share) s)) }
 
 $l $i*   { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 \" ([$u # [\" \\ \n]] | (\\ (\" | \\ | \' | n | t)))* \"{ tok (\p s -> PT p (TL $ share $ unescapeInitTail s)) }
@@ -108,7 +108,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "]" 22 (b "-" 11 (b ")" 6 (b "(" 3 (b "&" 2 (b "!" 1 N N) N) (b "(\\" 5 (b "()" 4 N N) N)) (b "++" 9 (b "+" 8 (b "*" 7 N N) N) (b "," 10 N N))) (b ";" 17 (b "/" 14 (b "." 13 (b "->" 12 N N) N) (b "::" 16 (b ":" 15 N N) N)) (b "[" 20 (b "@" 19 (b "=" 18 N N) N) (b "[]" 21 N N)))) (b "output" 33 (b "initial" 28 (b "false" 25 (b "else" 24 (b "_" 23 N N) N) (b "in" 27 (b "if" 26 N N) N)) (b "let" 31 (b "is" 30 (b "input" 29 N N) N) (b "match" 32 N N))) (b "type" 38 (b "then" 36 (b "stream" 35 (b "state" 34 N N) N) (b "true" 37 N N)) (b "|" 41 (b "{" 40 (b "with" 39 N N) N) (b "}" 42 N N))))
+resWords = b "[]" 21 (b "-" 11 (b ")" 6 (b "(" 3 (b "&" 2 (b "!" 1 N N) N) (b "(\\" 5 (b "()" 4 N N) N)) (b "++" 9 (b "+" 8 (b "*" 7 N N) N) (b "," 10 N N))) (b "::" 16 (b "/" 14 (b "." 13 (b "->" 12 N N) N) (b ":" 15 N N)) (b "@" 19 (b "=" 18 (b ";" 17 N N) N) (b "[" 20 N N)))) (b "output" 32 (b "in" 27 (b "else" 24 (b "_" 23 (b "]" 22 N N) N) (b "if" 26 (b "false" 25 N N) N)) (b "let" 30 (b "input" 29 (b "initial" 28 N N) N) (b "match" 31 N N))) (b "type" 37 (b "then" 35 (b "stream" 34 (b "state" 33 N N) N) (b "true" 36 N N)) (b "|" 40 (b "{" 39 (b "with" 38 N N) N) (b "}" 41 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

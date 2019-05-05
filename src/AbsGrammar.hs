@@ -34,7 +34,7 @@ data Expr
     | EQual QIdent
     | ETrue
     | EFalse
-    | EVoid
+    | EUnit
     | EEmpty
     | ENot Expr
     | ETuple Expr [Expr]
@@ -89,7 +89,7 @@ data Pattern
     | PTrue
     | PFalse
     | PEmpty
-    | PVoid
+    | PUnit
     | PListHT Pattern Pattern
     | PUnion Integer Pattern
   deriving (Eq, Ord, Show, Read)

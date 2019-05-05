@@ -1,0 +1,24 @@
+
+type myunion = char + int + bool;
+type myrecunion = myunion + myrecunion;
+
+f :: int -> int -> bool -> myrecunion;
+f a b c = if a + b > 0 & c then 1 @ 'a' else 2 @ a;
+
+g a b c n = if n <= 0 then f a b c else 4 @ g a b c (n - 1);
+
+stream main
+input
+state
+    x :: myrecunion;
+    x = x
+output
+    print = match x with {
+        4 @ 1 @ c -> c
+    };
+    exit = !exit
+initial
+    print = 'x',
+    exit = false,
+    x = g (-2) 3 true 3
+

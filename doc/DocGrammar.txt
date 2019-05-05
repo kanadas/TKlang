@@ -37,7 +37,7 @@ RelOp literals are recognized by the regular expression
 `````'>' | '<' | {"<="} | {">="} | {"=="} | {"!="}`````
 
 Basic literals are recognized by the regular expression
-`````{"int"} | {"bool"} | {"char"} | {"void"}`````
+`````{"int"} | {"bool"} | {"char"} | {"unit"}`````
 
 
 ===Reserved words and symbols===
@@ -45,17 +45,17 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 
 The reserved words used in Grammar are the following:
   | ``else`` | ``false`` | ``if`` | ``in``
-  | ``initial`` | ``input`` | ``is`` | ``let``
-  | ``match`` | ``output`` | ``state`` | ``stream``
-  | ``then`` | ``true`` | ``type`` | ``with``
+  | ``initial`` | ``input`` | ``let`` | ``match``
+  | ``output`` | ``state`` | ``stream`` | ``then``
+  | ``true`` | ``type`` | ``with`` | 
 
 The symbols used in Grammar are the following:
   | ; | :: | = | ()
   | [] | ! | ( | ,
   | ) | [ | ] | (\
   | -> | * | / | +
-  | - | ++ | & | |
-  | : | @ | { | }
+  | - | ++ | @ | &
+  | | | : | { | }
   | _ | . |  | 
 
 ===Comments===
@@ -75,7 +75,7 @@ All other symbols are terminals.
   |  |  **|**  | //Def// 
   |  |  **|**  | //Stream// 
   | //VDecl// | -> | //Ident// ``::`` //Type// 
-  | //TDecl// | -> | ``type`` //Ident// ``is`` //Type// 
+  | //TDecl// | -> | ``type`` //Ident// ``=`` //Type// 
   | //Def// | -> | //Ident// //[Ident]// ``=`` //Expr// 
   | //Expr11// | -> | //Integer// 
   |  |  **|**  | //Char// 
@@ -102,15 +102,15 @@ All other symbols are terminals.
   |  |  **|**  | //Expr9// 
   | //Expr7// | -> | ``-`` //Expr7// 
   |  |  **|**  | //Expr8// 
-  | //Expr6// | -> | //Expr6// //RelOp// //Expr7// 
+  | //Expr6// | -> | //Integer// ``@`` //Expr7// 
   |  |  **|**  | //Expr7// 
-  | //Expr5// | -> | //Expr5// ``&`` //Expr6// 
+  | //Expr5// | -> | //Expr5// //RelOp// //Expr6// 
   |  |  **|**  | //Expr6// 
-  | //Expr4// | -> | //Expr4// ``|`` //Expr5// 
+  | //Expr4// | -> | //Expr4// ``&`` //Expr5// 
   |  |  **|**  | //Expr5// 
-  | //Expr3// | -> | //Expr3// ``:`` //Expr4// 
+  | //Expr3// | -> | //Expr3// ``|`` //Expr4// 
   |  |  **|**  | //Expr4// 
-  | //Expr2// | -> | //Integer// ``@`` //Expr3// 
+  | //Expr2// | -> | //Expr2// ``:`` //Expr3// 
   |  |  **|**  | //Expr3// 
   | //Expr1// | -> | ``if`` //Expr// ``then`` //Expr// ``else`` //Expr1// 
   |  |  **|**  | ``let`` //Ident// ``=`` //Expr// ``in`` //Expr1// 

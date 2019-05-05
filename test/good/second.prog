@@ -1,0 +1,16 @@
+/*This program prints every second character in stdin
+Features:
+    reactive Input/Output: 
+        reading next character by Input.read
+        skipping printing by setting print output to 2()
+        automaticly exiting when read eof
+*/    
+
+stream main
+input Input
+state 
+output 
+//    print :: char + unit;
+    print = if print == (2@()) then 1@Input.read else 2@()
+initial 
+    print = 2@()

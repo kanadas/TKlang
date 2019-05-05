@@ -34,7 +34,7 @@ data Expr
     | EQual QIdent
     | ETrue
     | EFalse
-    | EVoid
+    | EUnit
     | EEmpty
     | ENot Expr
     | ETuple Expr [Expr]
@@ -47,11 +47,11 @@ data Expr
     | ESub Expr Expr
     | EConcat Expr Expr
     | ENeg Expr
+    | EUnion Integer Expr
     | ERel Expr RelOp Expr
     | EAnd Expr Expr
     | EOr Expr Expr
     | EAppend Expr Expr
-    | EUnion Integer Expr
     | EIf Expr Expr Expr
     | ELet Ident Expr Expr
     | EMatch Expr [Alternative]
@@ -81,7 +81,7 @@ data Pattern
     | PTrue
     | PFalse
     | PEmpty
-    | PVoid
+    | PUnit
     | PListHT Pattern Pattern
     | PUnion Integer Pattern
   deriving (Eq, Ord, Show, Read)

@@ -1,5 +1,5 @@
 
-head :: [char] -> char + void;
+head :: [char] -> char + unit;
 head l = match l with {
     h:t -> 1@h;
     [] -> 2@()

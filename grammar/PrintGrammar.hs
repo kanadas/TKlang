@@ -117,7 +117,7 @@ instance Print VDecl where
 
 instance Print TDecl where
   prt i e = case e of
-    DTDecl id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "is"), prt 0 type_])
+    DTDecl id type_ -> prPrec i 0 (concatD [doc (showString "type"), prt 0 id, doc (showString "="), prt 0 type_])
 
 instance Print Def where
   prt i e = case e of
@@ -135,7 +135,7 @@ instance Print Expr where
     EQual qident -> prPrec i 11 (concatD [prt 0 qident])
     ETrue -> prPrec i 11 (concatD [doc (showString "true")])
     EFalse -> prPrec i 11 (concatD [doc (showString "false")])
-    EVoid -> prPrec i 11 (concatD [doc (showString "()")])
+    EUnit -> prPrec i 11 (concatD [doc (showString "()")])
     EEmpty -> prPrec i 11 (concatD [doc (showString "[]")])
     ENot expr -> prPrec i 11 (concatD [doc (showString "!"), prt 11 expr])
     ETuple expr exprs -> prPrec i 11 (concatD [doc (showString "("), prt 0 expr, doc (showString ","), prt 0 exprs, doc (showString ")")])
@@ -148,11 +148,11 @@ instance Print Expr where
     ESub expr1 expr2 -> prPrec i 8 (concatD [prt 8 expr1, doc (showString "-"), prt 9 expr2])
     EConcat expr1 expr2 -> prPrec i 8 (concatD [prt 8 expr1, doc (showString "++"), prt 9 expr2])
     ENeg expr -> prPrec i 7 (concatD [doc (showString "-"), prt 7 expr])
-    ERel expr1 relop expr2 -> prPrec i 6 (concatD [prt 6 expr1, prt 0 relop, prt 7 expr2])
-    EAnd expr1 expr2 -> prPrec i 5 (concatD [prt 5 expr1, doc (showString "&"), prt 6 expr2])
-    EOr expr1 expr2 -> prPrec i 4 (concatD [prt 4 expr1, doc (showString "|"), prt 5 expr2])
-    EAppend expr1 expr2 -> prPrec i 3 (concatD [prt 3 expr1, doc (showString ":"), prt 4 expr2])
-    EUnion n expr -> prPrec i 2 (concatD [prt 0 n, doc (showString "@"), prt 3 expr])
+    EUnion n expr -> prPrec i 6 (concatD [prt 0 n, doc (showString "@"), prt 7 expr])
+    ERel expr1 relop expr2 -> prPrec i 5 (concatD [prt 5 expr1, prt 0 relop, prt 6 expr2])
+    EAnd expr1 expr2 -> prPrec i 4 (concatD [prt 4 expr1, doc (showString "&"), prt 5 expr2])
+    EOr expr1 expr2 -> prPrec i 3 (concatD [prt 3 expr1, doc (showString "|"), prt 4 expr2])
+    EAppend expr1 expr2 -> prPrec i 2 (concatD [prt 2 expr1, doc (showString ":"), prt 3 expr2])
     EIf expr1 expr2 expr3 -> prPrec i 1 (concatD [doc (showString "if"), prt 0 expr1, doc (showString "then"), prt 0 expr2, doc (showString "else"), prt 1 expr3])
     ELet id expr1 expr2 -> prPrec i 1 (concatD [doc (showString "let"), prt 0 id, doc (showString "="), prt 0 expr1, doc (showString "in"), prt 1 expr2])
     EMatch expr alternatives -> prPrec i 1 (concatD [doc (showString "match"), prt 0 expr, doc (showString "with"), doc (showString "{"), prt 0 alternatives, doc (showString "}")])
@@ -196,7 +196,7 @@ instance Print Pattern where
     PTrue -> prPrec i 2 (concatD [doc (showString "true")])
     PFalse -> prPrec i 2 (concatD [doc (showString "false")])
     PEmpty -> prPrec i 2 (concatD [doc (showString "[]")])
-    PVoid -> prPrec i 2 (concatD [doc (showString "()")])
+    PUnit -> prPrec i 2 (concatD [doc (showString "()")])
     PListHT pattern1 pattern2 -> prPrec i 1 (concatD [prt 1 pattern1, doc (showString ":"), prt 2 pattern2])
     PUnion n pattern -> prPrec i 0 (concatD [prt 0 n, doc (showString "@"), prt 0 pattern])
   prtList _ [x] = concatD [prt 0 x]

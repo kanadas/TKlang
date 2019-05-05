@@ -21,7 +21,7 @@ Grammar
 	Top -> Def                                         (12)
 	Top -> Stream                                      (13)
 	VDecl -> Ident '::' Type                           (14)
-	TDecl -> 'type' Ident 'is' Type                    (15)
+	TDecl -> 'type' Ident '=' Type                     (15)
 	Def -> Ident ListIdent '=' Expr                    (16)
 	Expr11 -> Integer                                  (17)
 	Expr11 -> Char                                     (18)
@@ -48,15 +48,15 @@ Grammar
 	Expr8 -> Expr9                                     (39)
 	Expr7 -> '-' Expr7                                 (40)
 	Expr7 -> Expr8                                     (41)
-	Expr6 -> Expr6 RelOp Expr7                         (42)
+	Expr6 -> Integer '@' Expr7                         (42)
 	Expr6 -> Expr7                                     (43)
-	Expr5 -> Expr5 '&' Expr6                           (44)
+	Expr5 -> Expr5 RelOp Expr6                         (44)
 	Expr5 -> Expr6                                     (45)
-	Expr4 -> Expr4 '|' Expr5                           (46)
+	Expr4 -> Expr4 '&' Expr5                           (46)
 	Expr4 -> Expr5                                     (47)
-	Expr3 -> Expr3 ':' Expr4                           (48)
+	Expr3 -> Expr3 '|' Expr4                           (48)
 	Expr3 -> Expr4                                     (49)
-	Expr2 -> Integer '@' Expr3                         (50)
+	Expr2 -> Expr2 ':' Expr3                           (50)
 	Expr2 -> Expr3                                     (51)
 	Expr1 -> 'if' Expr 'then' Expr 'else' Expr1        (52)
 	Expr1 -> 'let' Ident '=' Expr 'in' Expr1           (53)
@@ -142,19 +142,18 @@ Terminals
 	'in'           { PT _ (TS _ 27) }
 	'initial'      { PT _ (TS _ 28) }
 	'input'        { PT _ (TS _ 29) }
-	'is'           { PT _ (TS _ 30) }
-	'let'          { PT _ (TS _ 31) }
-	'match'        { PT _ (TS _ 32) }
-	'output'       { PT _ (TS _ 33) }
-	'state'        { PT _ (TS _ 34) }
-	'stream'       { PT _ (TS _ 35) }
-	'then'         { PT _ (TS _ 36) }
-	'true'         { PT _ (TS _ 37) }
-	'type'         { PT _ (TS _ 38) }
-	'with'         { PT _ (TS _ 39) }
-	'{'            { PT _ (TS _ 40) }
-	'|'            { PT _ (TS _ 41) }
-	'}'            { PT _ (TS _ 42) }
+	'let'          { PT _ (TS _ 30) }
+	'match'        { PT _ (TS _ 31) }
+	'output'       { PT _ (TS _ 32) }
+	'state'        { PT _ (TS _ 33) }
+	'stream'       { PT _ (TS _ 34) }
+	'then'         { PT _ (TS _ 35) }
+	'true'         { PT _ (TS _ 36) }
+	'type'         { PT _ (TS _ 37) }
+	'with'         { PT _ (TS _ 38) }
+	'{'            { PT _ (TS _ 39) }
+	'|'            { PT _ (TS _ 40) }
+	'}'            { PT _ (TS _ 41) }
 	L_ident        { PT _ (TV $$) }
 	L_integ        { PT _ (TI $$) }
 	L_charac       { PT _ (TC $$) }
@@ -263,7 +262,6 @@ State 2
 	'in'           reduce using rule 1
 	'initial'      reduce using rule 1
 	'input'        reduce using rule 1
-	'is'           reduce using rule 1
 	'output'       reduce using rule 1
 	'state'        reduce using rule 1
 	'then'         reduce using rule 1
@@ -356,7 +354,7 @@ State 11
 
 State 12
 
-	TDecl -> 'type' . Ident 'is' Type                   (rule 15)
+	TDecl -> 'type' . Ident '=' Type                    (rule 15)
 
 	L_ident        shift, and enter state 2
 
@@ -364,9 +362,9 @@ State 12
 
 State 13
 
-	TDecl -> 'type' Ident . 'is' Type                   (rule 15)
+	TDecl -> 'type' Ident . '=' Type                    (rule 15)
 
-	'is'           shift, and enter state 32
+	'='            shift, and enter state 32
 
 
 State 14
@@ -664,7 +662,7 @@ State 31
 
 State 32
 
-	TDecl -> 'type' Ident 'is' . Type                   (rule 15)
+	TDecl -> 'type' Ident '=' . Type                    (rule 15)
 
 	'('            shift, and enter state 25
 	'['            shift, and enter state 26
@@ -680,7 +678,7 @@ State 32
 
 State 33
 
-	TDecl -> 'type' Ident 'is' Type .                   (rule 15)
+	TDecl -> 'type' Ident '=' Type .                    (rule 15)
 
 	';'            reduce using rule 15
 	%eof           reduce using rule 15
@@ -738,7 +736,7 @@ State 35
 State 36
 
 	Expr11 -> Integer .                                 (rule 17)
-	Expr2 -> Integer . '@' Expr3                        (rule 50)
+	Expr6 -> Integer . '@' Expr7                        (rule 42)
 
 	'!'            reduce using rule 17
 	'&'            reduce using rule 17
@@ -1028,7 +1026,6 @@ State 43
 
 State 44
 
-	Expr6 -> Expr6 . RelOp Expr7                        (rule 42)
 	Expr5 -> Expr6 .                                    (rule 45)
 
 	'&'            reduce using rule 45
@@ -1046,17 +1043,16 @@ State 44
 	'with'         reduce using rule 45
 	'|'            reduce using rule 45
 	'}'            reduce using rule 45
-	L_RelOp        shift, and enter state 92
+	L_RelOp        reduce using rule 45
 	%eof           reduce using rule 45
 
-	RelOp          goto state 91
 
 State 45
 
-	Expr5 -> Expr5 . '&' Expr6                          (rule 44)
+	Expr5 -> Expr5 . RelOp Expr6                        (rule 44)
 	Expr4 -> Expr5 .                                    (rule 47)
 
-	'&'            shift, and enter state 90
+	'&'            reduce using rule 47
 	')'            reduce using rule 47
 	','            reduce using rule 47
 	':'            reduce using rule 47
@@ -1071,14 +1067,17 @@ State 45
 	'with'         reduce using rule 47
 	'|'            reduce using rule 47
 	'}'            reduce using rule 47
+	L_RelOp        shift, and enter state 92
 	%eof           reduce using rule 47
 
+	RelOp          goto state 91
 
 State 46
 
-	Expr4 -> Expr4 . '|' Expr5                          (rule 46)
+	Expr4 -> Expr4 . '&' Expr5                          (rule 46)
 	Expr3 -> Expr4 .                                    (rule 49)
 
+	'&'            shift, and enter state 90
 	')'            reduce using rule 49
 	','            reduce using rule 49
 	':'            reduce using rule 49
@@ -1091,19 +1090,19 @@ State 46
 	'output'       reduce using rule 49
 	'then'         reduce using rule 49
 	'with'         reduce using rule 49
-	'|'            shift, and enter state 89
+	'|'            reduce using rule 49
 	'}'            reduce using rule 49
 	%eof           reduce using rule 49
 
 
 State 47
 
-	Expr3 -> Expr3 . ':' Expr4                          (rule 48)
+	Expr3 -> Expr3 . '|' Expr4                          (rule 48)
 	Expr2 -> Expr3 .                                    (rule 51)
 
 	')'            reduce using rule 51
 	','            reduce using rule 51
-	':'            shift, and enter state 88
+	':'            reduce using rule 51
 	'::'           reduce using rule 51
 	';'            reduce using rule 51
 	']'            reduce using rule 51
@@ -1113,16 +1112,19 @@ State 47
 	'output'       reduce using rule 51
 	'then'         reduce using rule 51
 	'with'         reduce using rule 51
+	'|'            shift, and enter state 89
 	'}'            reduce using rule 51
 	%eof           reduce using rule 51
 
 
 State 48
 
+	Expr2 -> Expr2 . ':' Expr3                          (rule 50)
 	Expr1 -> Expr2 .                                    (rule 55)
 
 	')'            reduce using rule 55
 	','            reduce using rule 55
+	':'            shift, and enter state 88
 	'::'           reduce using rule 55
 	';'            reduce using rule 55
 	']'            reduce using rule 55
@@ -2055,7 +2057,7 @@ State 87
 
 State 88
 
-	Expr3 -> Expr3 ':' . Expr4                          (rule 48)
+	Expr2 -> Expr2 ':' . Expr3                          (rule 50)
 
 	'!'            shift, and enter state 52
 	'('            shift, and enter state 53
@@ -2072,7 +2074,7 @@ State 88
 	L_quoted       shift, and enter state 66
 
 	Ident          goto state 35
-	Integer        goto state 82
+	Integer        goto state 36
 	Char           goto state 37
 	String         goto state 38
 	Expr11         goto state 39
@@ -2082,12 +2084,13 @@ State 88
 	Expr7          goto state 43
 	Expr6          goto state 44
 	Expr5          goto state 45
-	Expr4          goto state 116
+	Expr4          goto state 46
+	Expr3          goto state 116
 	QIdent         goto state 51
 
 State 89
 
-	Expr4 -> Expr4 '|' . Expr5                          (rule 46)
+	Expr3 -> Expr3 '|' . Expr4                          (rule 48)
 
 	'!'            shift, and enter state 52
 	'('            shift, and enter state 53
@@ -2104,7 +2107,7 @@ State 89
 	L_quoted       shift, and enter state 66
 
 	Ident          goto state 35
-	Integer        goto state 82
+	Integer        goto state 36
 	Char           goto state 37
 	String         goto state 38
 	Expr11         goto state 39
@@ -2113,12 +2116,13 @@ State 89
 	Expr8          goto state 42
 	Expr7          goto state 43
 	Expr6          goto state 44
-	Expr5          goto state 115
+	Expr5          goto state 45
+	Expr4          goto state 115
 	QIdent         goto state 51
 
 State 90
 
-	Expr5 -> Expr5 '&' . Expr6                          (rule 44)
+	Expr4 -> Expr4 '&' . Expr5                          (rule 46)
 
 	'!'            shift, and enter state 52
 	'('            shift, and enter state 53
@@ -2135,7 +2139,7 @@ State 90
 	L_quoted       shift, and enter state 66
 
 	Ident          goto state 35
-	Integer        goto state 82
+	Integer        goto state 36
 	Char           goto state 37
 	String         goto state 38
 	Expr11         goto state 39
@@ -2143,12 +2147,13 @@ State 90
 	Expr9          goto state 41
 	Expr8          goto state 42
 	Expr7          goto state 43
-	Expr6          goto state 114
+	Expr6          goto state 44
+	Expr5          goto state 114
 	QIdent         goto state 51
 
 State 91
 
-	Expr6 -> Expr6 RelOp . Expr7                        (rule 42)
+	Expr5 -> Expr5 RelOp . Expr6                        (rule 44)
 
 	'!'            shift, and enter state 52
 	'('            shift, and enter state 53
@@ -2165,14 +2170,15 @@ State 91
 	L_quoted       shift, and enter state 66
 
 	Ident          goto state 35
-	Integer        goto state 82
+	Integer        goto state 36
 	Char           goto state 37
 	String         goto state 38
 	Expr11         goto state 39
 	Expr10         goto state 40
 	Expr9          goto state 41
 	Expr8          goto state 42
-	Expr7          goto state 113
+	Expr7          goto state 43
+	Expr6          goto state 113
 	QIdent         goto state 51
 
 State 92
@@ -2364,7 +2370,7 @@ State 98
 
 State 99
 
-	Expr2 -> Integer '@' . Expr3                        (rule 50)
+	Expr6 -> Integer '@' . Expr7                        (rule 42)
 
 	'!'            shift, and enter state 52
 	'('            shift, and enter state 53
@@ -2388,11 +2394,7 @@ State 99
 	Expr10         goto state 40
 	Expr9          goto state 41
 	Expr8          goto state 42
-	Expr7          goto state 43
-	Expr6          goto state 44
-	Expr5          goto state 45
-	Expr4          goto state 46
-	Expr3          goto state 107
+	Expr7          goto state 107
 	QIdent         goto state 51
 
 State 100
@@ -2493,23 +2495,25 @@ State 106
 
 State 107
 
-	Expr3 -> Expr3 . ':' Expr4                          (rule 48)
-	Expr2 -> Integer '@' Expr3 .                        (rule 50)
+	Expr6 -> Integer '@' Expr7 .                        (rule 42)
 
-	')'            reduce using rule 50
-	','            reduce using rule 50
-	':'            shift, and enter state 88
-	'::'           reduce using rule 50
-	';'            reduce using rule 50
-	']'            reduce using rule 50
-	'else'         reduce using rule 50
-	'in'           reduce using rule 50
-	'initial'      reduce using rule 50
-	'output'       reduce using rule 50
-	'then'         reduce using rule 50
-	'with'         reduce using rule 50
-	'}'            reduce using rule 50
-	%eof           reduce using rule 50
+	'&'            reduce using rule 42
+	')'            reduce using rule 42
+	','            reduce using rule 42
+	':'            reduce using rule 42
+	'::'           reduce using rule 42
+	';'            reduce using rule 42
+	']'            reduce using rule 42
+	'else'         reduce using rule 42
+	'in'           reduce using rule 42
+	'initial'      reduce using rule 42
+	'output'       reduce using rule 42
+	'then'         reduce using rule 42
+	'with'         reduce using rule 42
+	'|'            reduce using rule 42
+	'}'            reduce using rule 42
+	L_RelOp        reduce using rule 42
+	%eof           reduce using rule 42
 
 
 State 108
@@ -2698,31 +2702,7 @@ State 112
 
 State 113
 
-	Expr6 -> Expr6 RelOp Expr7 .                        (rule 42)
-
-	'&'            reduce using rule 42
-	')'            reduce using rule 42
-	','            reduce using rule 42
-	':'            reduce using rule 42
-	'::'           reduce using rule 42
-	';'            reduce using rule 42
-	']'            reduce using rule 42
-	'else'         reduce using rule 42
-	'in'           reduce using rule 42
-	'initial'      reduce using rule 42
-	'output'       reduce using rule 42
-	'then'         reduce using rule 42
-	'with'         reduce using rule 42
-	'|'            reduce using rule 42
-	'}'            reduce using rule 42
-	L_RelOp        reduce using rule 42
-	%eof           reduce using rule 42
-
-
-State 114
-
-	Expr6 -> Expr6 . RelOp Expr7                        (rule 42)
-	Expr5 -> Expr5 '&' Expr6 .                          (rule 44)
+	Expr5 -> Expr5 RelOp Expr6 .                        (rule 44)
 
 	'&'            reduce using rule 44
 	')'            reduce using rule 44
@@ -2739,17 +2719,16 @@ State 114
 	'with'         reduce using rule 44
 	'|'            reduce using rule 44
 	'}'            reduce using rule 44
-	L_RelOp        shift, and enter state 92
+	L_RelOp        reduce using rule 44
 	%eof           reduce using rule 44
 
-	RelOp          goto state 91
 
-State 115
+State 114
 
-	Expr5 -> Expr5 . '&' Expr6                          (rule 44)
-	Expr4 -> Expr4 '|' Expr5 .                          (rule 46)
+	Expr5 -> Expr5 . RelOp Expr6                        (rule 44)
+	Expr4 -> Expr4 '&' Expr5 .                          (rule 46)
 
-	'&'            shift, and enter state 90
+	'&'            reduce using rule 46
 	')'            reduce using rule 46
 	','            reduce using rule 46
 	':'            reduce using rule 46
@@ -2764,14 +2743,17 @@ State 115
 	'with'         reduce using rule 46
 	'|'            reduce using rule 46
 	'}'            reduce using rule 46
+	L_RelOp        shift, and enter state 92
 	%eof           reduce using rule 46
 
+	RelOp          goto state 91
 
-State 116
+State 115
 
-	Expr4 -> Expr4 . '|' Expr5                          (rule 46)
-	Expr3 -> Expr3 ':' Expr4 .                          (rule 48)
+	Expr4 -> Expr4 . '&' Expr5                          (rule 46)
+	Expr3 -> Expr3 '|' Expr4 .                          (rule 48)
 
+	'&'            shift, and enter state 90
 	')'            reduce using rule 48
 	','            reduce using rule 48
 	':'            reduce using rule 48
@@ -2784,9 +2766,31 @@ State 116
 	'output'       reduce using rule 48
 	'then'         reduce using rule 48
 	'with'         reduce using rule 48
-	'|'            shift, and enter state 89
+	'|'            reduce using rule 48
 	'}'            reduce using rule 48
 	%eof           reduce using rule 48
+
+
+State 116
+
+	Expr3 -> Expr3 . '|' Expr4                          (rule 48)
+	Expr2 -> Expr2 ':' Expr3 .                          (rule 50)
+
+	')'            reduce using rule 50
+	','            reduce using rule 50
+	':'            reduce using rule 50
+	'::'           reduce using rule 50
+	';'            reduce using rule 50
+	']'            reduce using rule 50
+	'else'         reduce using rule 50
+	'in'           reduce using rule 50
+	'initial'      reduce using rule 50
+	'output'       reduce using rule 50
+	'then'         reduce using rule 50
+	'with'         reduce using rule 50
+	'|'            shift, and enter state 89
+	'}'            reduce using rule 50
+	%eof           reduce using rule 50
 
 
 State 117
@@ -3951,6 +3955,6 @@ State 183
 Grammar Totals
 -----------------------------------------------------------------------------
 Number of rules: 103
-Number of terminals: 48
+Number of terminals: 47
 Number of non-terminals: 42
 Number of states: 184
