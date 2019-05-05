@@ -1,0 +1,11 @@
+// initial definition for nonexisting symbol
+
+stream main
+input 
+state 
+output 
+    print = 'a'
+initial 
+    buf = "Hello world!", 
+    print = 'a'
+

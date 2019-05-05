@@ -1,3 +1,5 @@
+//Type mismatch
+
 stream buffer
 input Input
 state buf = match buf with {

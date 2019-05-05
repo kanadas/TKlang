@@ -1,0 +1,5 @@
+//No main stream
+//main stream is only way to output something, so if its absent, program has nothing to do.
+
+stream mine
+input state output print = 'a' initial print = 'a'

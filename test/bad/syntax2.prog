@@ -1,0 +1,5 @@
+//missing ',' in with
+f x = match x with {
+    h:t -> h + 1
+    [] -> 1
+}

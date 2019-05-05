@@ -1,5 +1,7 @@
-stream buffer
-input Input
+/* every definition in stream state or output must be initialized in initial, functions are no exception*/
+
+stream main
+input 
 state 
     tail l = match l with {
         h:t -> t;
@@ -12,13 +14,8 @@ state
     buf :: [char];
     buf = tail buf
 output 
-    out = head buf
+    print = head buf
 initial 
     buf = "Hello world!", 
-    out = 2 @ ();
+    print = 2 @ ()
 
-stream main
-input buffer
-state
-output print = buffer.out
-initial print = 0

@@ -1,0 +1,3 @@
+//Wrong argument count
+f a b = a + b;
+g x = f x (x+1) (x+2)

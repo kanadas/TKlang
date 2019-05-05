@@ -1,0 +1,4 @@
+//wrong type of print output
+
+stream main
+input state output print = 0 initial print = 0

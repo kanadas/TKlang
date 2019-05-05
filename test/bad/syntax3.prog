@@ -1,0 +1,6 @@
+//semicolon at the end of file 
+//commas and semicolons separate statements, so they cannot be used at the end of statement block
+f x = match x with {
+    h:t -> h + 1;
+    [] -> 1
+};

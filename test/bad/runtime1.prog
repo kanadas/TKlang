@@ -1,3 +1,5 @@
+//Runtime error: no pattern to match
+
 
 type myunion = char + int + bool;
 type myrecunion = myunion + myrecunion;

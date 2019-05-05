@@ -1,0 +1,7 @@
+//Runtime error: division by 0
+
+stream main
+input
+state cnt = cnt - 1
+output print = if 1 / cnt > 0 then 'a' else 'b'
+initial print = 'a', cnt = 10

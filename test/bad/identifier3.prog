@@ -1,0 +1,5 @@
+/*missing definition: identifier must be declared to used, definition is not sufficient
+*/
+g :: int -> int;
+f x = g (x + 1);
+g x = x + 1

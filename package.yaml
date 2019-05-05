@@ -1,7 +1,7 @@
 name:                tklang
-version:             0.1.0.0
+version:             1.0.0.0
 github:              "kanadas/tklang"
-license:             BSD3
+license:             WTFPL
 author:              "Tomasz Kanas"
 maintainer:          "kanas.tomasz@gmail.com"
 copyright:           "2019 Tomasz Kanas"

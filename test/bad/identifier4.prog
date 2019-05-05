@@ -1,0 +1,11 @@
+//missing definition: even in stream identifier must be first declared to be used
+stream main
+input
+state
+    f x = g (x + 1)
+output
+    g x = x + 1
+initial
+    f x = x,
+    g x = x
+

@@ -1,0 +1,2 @@
+//every element of list needs to have the same type
+l = [1 + 2, true | false, ()]
